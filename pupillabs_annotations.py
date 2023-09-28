@@ -1,4 +1,6 @@
 """
+Modified code from https://github.com/pupil-labs/pupil-helpers/blob/master/python/pupil_remote_control.py
+
 (*)~----------------------------------------------------------------------------------
  Pupil Helpers
  Copyright (C) 2012-2016  Pupil Labs
@@ -23,9 +25,19 @@ import socket
 import sys
 import readchar
 
-def run(ip_address: str = "127.0.0.1", port: int = 50020):
+def compress_recording():
+    pass
 
-        # 1. Setup network connection
+def main(ip_address: str = "127.0.0.1", port: int = 50020):
+    """
+    This example performs these steps:
+    1. Setup network connection
+    2. Setup "local" clock function
+    3. Measure clock offset accounting for network latency variance
+    4. Prepare and send annotations
+    """
+    
+    # 1. Setup network connection
     check_capture_exists(ip_address, port)
     pupil_remote, pub_socket = setup_pupil_remote_connection(ip_address, port)
 
@@ -80,7 +92,9 @@ def run(ip_address: str = "127.0.0.1", port: int = 50020):
     
             pupil_remote.send_string("r")
             pupil_remote.recv_string()
+            compress_recording()
             #stop recording, bookend annotation
+
 
         if key.lower() == 'p':
             # send a trigger to bookend this annotation while in the same recording
@@ -116,78 +130,8 @@ def run(ip_address: str = "127.0.0.1", port: int = 50020):
                 # stop recording
                 pupil_remote.send_string("r")
                 pupil_remote.recv_string()
+                compress_recording()
                 break
-
-
-def main(ip_address: str = "127.0.0.1", port: int = 50020):
-    """
-    This example performs these steps:
-    1. Setup network connection
-    2. Setup "local" clock function
-    3. Measure clock offset accounting for network latency variance
-    4. Prepare and send annotations
-    """
-
-    # 1. Setup network connection
-    check_capture_exists(ip_address, port)
-    pupil_remote, pub_socket = setup_pupil_remote_connection(ip_address, port)
-
-    # 2. Setup local clock function
-    local_clock = time.perf_counter
-
-    # 3. Measure clock offset accounting for network latency
-    stable_offset_mean = measure_clock_offset_stable(
-        pupil_remote, clock_function=local_clock, n_samples=10
-    )
-
-    pupil_time_actual = request_pupil_time(pupil_remote)
-    local_time_actual = local_clock()
-    pupil_time_calculated_locally = local_time_actual + stable_offset_mean
-    print(f"Pupil time actual: {pupil_time_actual}")
-    print(f"Local time actual: {local_time_actual}")
-    print(f"Stable offset: {stable_offset_mean}")
-    print(f"Pupil time (calculated locally): {pupil_time_calculated_locally}")
-
-    # 4. Prepare and send annotations
-    # Start the annotations plugin
-    notify(
-        pupil_remote,
-        {"subject": "start_plugin", "name": "Annotation_Capture", "args": {}},
-    )
-
-    # start a recording (necessary for this example script)
-    pupil_remote.send_string("R")
-    pupil_remote.recv_string()
-    time.sleep(1.0)  # sleep for a few seconds, can be less
-
-    # Send an annotation.
-    # We send a timestamp sampled from the local clock (e.g. that corresponds to a
-    # trigger event, or a stimulus that was presented). The clock offset that we
-    # measured in step 3 will be added to the timestamp to correctly align it with
-    # Pupil Time. The annotation will be saved to annotation.pldata if a recording is
-    # running. The Annotation_Player plugin will automatically retrieve, display and
-    # export all recorded annotations.
-    local_time = local_clock()
-    print('input the annotation label:')
-    label = str(input()) #"custom_annotation_label"
-    duration = 0.0
-    minimal_trigger = new_trigger(label, duration, local_time + stable_offset_mean)
-    send_trigger(pub_socket, minimal_trigger)
-    time.sleep(1.0)  # sleep for a few seconds, can be less
-
-    # Send another trigger with the current time
-    local_time = local_clock()
-    minimal_trigger = new_trigger(label, duration, local_time + stable_offset_mean)
-    send_trigger(pub_socket, minimal_trigger)
-
-    # Add custom keys to your annotation
-    minimal_trigger["custom_key"] = "custom value"
-    send_trigger(pub_socket, minimal_trigger)
-    time.sleep(1.0)  # sleep for a few seconds, can be less
-
-    # stop recording
-    pupil_remote.send_string("r")
-    pupil_remote.recv_string()
 
 
 def check_capture_exists(ip_address, port):
@@ -304,5 +248,4 @@ def new_trigger(label, duration, timestamp):
 
 
 if __name__ == "__main__":
-    # main()
-    run()
+    main()
