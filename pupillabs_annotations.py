@@ -67,6 +67,12 @@ def main(ip_address: str = "127.0.0.1", port: int = 50020):
     label = None
     duration = 0.0
 
+    print("Enter 'R' to start recording")
+    print("Enter 'S' to stop recording")
+    print("Enter 'A' to start an annotation")
+    print("Enter 'P' to stop an annotation")
+    print("Enter 'E' to exit the tool")
+
     while True:
         key = readchar.readkey()
         key = key.lower()
@@ -132,6 +138,11 @@ def main(ip_address: str = "127.0.0.1", port: int = 50020):
                 pupil_remote.recv_string()
                 compress_recording()
                 break
+            elif confirm.lower() == 'n':
+                continue
+            else:
+                print('invalid entry, please try again (Y/N):')
+                confirm = str(input())
 
 
 def check_capture_exists(ip_address, port):
