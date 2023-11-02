@@ -20,6 +20,7 @@ current_annotation = ''
 emotibit_collect_data = False
 emotibit_test_output = False
 emotibit_data_log = []
+pupil_time_align_val = None
 #TODO: add in pupillabs timestamps vars
 
 emotibit_sensor_buffers = {
@@ -93,6 +94,7 @@ def filter_handler(unused_addr, *args):
     global emotibit_collect_data
     global emotibit_test_output
     global EMOTIBIT_BUFFER_INTERVAL
+    global pupil_time_align_val
 
     current_time = time.time()
 
@@ -112,6 +114,8 @@ def filter_handler(unused_addr, *args):
         # Append the grouped data with a timestamp to data_log
         group_data.append((['LABEL'], current_annotation))
         group_data.append((['TIMESTAMP'], timestamp))
+        if pupil_time_align_val != None:
+            group_data.append((['PUPIL_TIME'], pupil_time_align_val))
         emotibit_data_log.append(group_data)
         emotibit_last_collect_time = current_time
         emotibit_latest_osc_data = f"data: {group_data}"
@@ -153,36 +157,6 @@ def emotibit_server_thread(emotibit_ip, emotibit_port):
     print("Emotibit serving on {}".format(server.server_address))
     return server, dispatch
 
-def pupil_socket_thread(pupil_ip, pupil_port):
-    # 1. Setup network connection
-    check_capture_exists(pupil_ip, pupil_port)
-    pupil_remote, pub_socket = setup_pupil_remote_connection(pupil_ip, pupil_port)
-
-    # 2. Setup local clock function
-    local_clock = time.perf_counter
-
-    # 3. Measure clock offset accounting for network latency
-    stable_offset_mean = measure_clock_offset_stable(
-        pupil_remote, clock_function=local_clock, n_samples=10
-    )
-
-    pupil_time_actual = request_pupil_time(pupil_remote)
-    local_time_actual = local_clock()
-    pupil_time_calculated_locally = local_time_actual + stable_offset_mean
-    #TODO: pupil time
-    print(f"Pupil time actual: {pupil_time_actual}")
-    print(f"Local time actual: {local_time_actual}")
-    print(f"Stable offset: {stable_offset_mean}")
-    print(f"Pupil time (calculated locally): {pupil_time_calculated_locally}")
-
-    # 4. Prepare and send annotations
-    # Start the annotations plugin
-    notify(
-        pupil_remote,
-        {"subject": "start_plugin", "name": "Annotation_Capture", "args": {}},
-    )
-
-    return pupil_remote, pub_socket
 
 def check_capture_exists(ip_address, port):
     """check pupil capture instance exists"""
@@ -301,10 +275,10 @@ def main(emotibit_ip, emotibit_port):
     global current_annotation
     global emotibit_test_output
     global emotibit_data_log
+    global pupil_time_align_val
     
     emotibit_server, emotibit_dispatch = emotibit_server_thread(emotibit_ip, emotibit_port)
 
-    # pupil_remote, pub_socket = pupil_socket_thread("127.0.0.1", 50020)
     pupil_ip, pupil_port = "127.0.0.1", 50020
     emotibit_thread = Thread(target=emotibit_server.serve_forever)
     emotibit_thread.start()
@@ -356,6 +330,7 @@ def main(emotibit_ip, emotibit_port):
 
         if key == 'r':
             print('starting recording session')
+            pupil_time_align_val = request_pupil_time(pupil_remote)
             emotibit_collect_data = True
             pupil_remote.send_string("R")
             pupil_remote.recv_string()
@@ -372,6 +347,7 @@ def main(emotibit_ip, emotibit_port):
                 send_trigger(pub_socket, minimal_trigger)
                 current_annotation = ''
             
+            pupil_time_align_val = request_pupil_time(pupil_remote)
             emotibit_collect_data = False
             emotibit_save_data(emotibit_data_log)
             emotibit_data_log = []
@@ -380,6 +356,7 @@ def main(emotibit_ip, emotibit_port):
 
         if key == 'p':
             print('ending this annotation label')
+            pupil_time_align_val = request_pupil_time(pupil_remote)
             minimal_trigger = new_trigger(current_annotation, duration, local_time + stable_offset_mean)
             send_trigger(pub_socket, minimal_trigger)
             current_annotation = ''
@@ -392,6 +369,7 @@ def main(emotibit_ip, emotibit_port):
             duration = 0.0 #TODO: look into this value
             minimal_trigger = new_trigger(current_annotation, duration, local_time + stable_offset_mean)
             send_trigger(pub_socket, minimal_trigger)
+            pupil_time_align_val = request_pupil_time(pupil_remote)
 
         if key == 'e':
             print('confirm exit: (Y/N)')
@@ -401,6 +379,7 @@ def main(emotibit_ip, emotibit_port):
                 current_annotation = ''
                 emotibit_server.shutdown()
 
+                pupil_time_align_val = request_pupil_time(pupil_remote)
                 emotibit_save_data(emotibit_data_log)
                 local_time = local_clock()
                 minimal_trigger = new_trigger(current_annotation, duration, local_time + stable_offset_mean)
