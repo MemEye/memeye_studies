@@ -13,7 +13,13 @@ import time
 import socket
 import sys
 
+from psychopy import visual, core, event
+from threading import Thread
+import os
 
+EMOTIBIT_BUFFER_INTERVAL = 0.01  # 100hz
+emotibit_save_location = './data_test'
+record_num = 0
 emotibit_latest_osc_data = None
 emotibit_last_collect_time = time.time()
 current_annotation = ''
@@ -21,7 +27,7 @@ emotibit_collect_data = False
 emotibit_test_output = False
 emotibit_data_log = []
 pupil_time_align_val = None
-#TODO: add in pupillabs timestamps vars
+
 
 emotibit_sensor_buffers = {
     "/EmotiBit/0/PPG:RED": [],
@@ -270,7 +276,7 @@ def new_trigger(label, duration, timestamp):
         "duration": duration,
     }
 
-def main(emotibit_ip, emotibit_port):
+def collect_sensor_data(emotibit_ip, emotibit_port):
     global emotibit_collect_data
     global current_annotation
     global emotibit_test_output
@@ -298,7 +304,6 @@ def main(emotibit_ip, emotibit_port):
     pupil_time_actual = request_pupil_time(pupil_remote)
     local_time_actual = local_clock()
     pupil_time_calculated_locally = local_time_actual + stable_offset_mean
-    #TODO: pupil time
     print(f"Pupil time actual: {pupil_time_actual}")
     print(f"Local time actual: {local_time_actual}")
     print(f"Stable offset: {stable_offset_mean}")
@@ -315,7 +320,8 @@ def main(emotibit_ip, emotibit_port):
 
     print("Enter 'R' to start recording")
     print("Enter 'S' to stop recording")
-    print("Enter 'A' to start an annotation")
+    print("Enter 'A' to start a recognition annotation")
+    print("Enter 'B' to start a recall annotation")
     print("Enter 'P' to stop an annotation")
     print("Enter 'E' to exit the tool")
     print("Enter 'T' to test the emotibit output")
@@ -364,8 +370,17 @@ def main(emotibit_ip, emotibit_port):
 
         if key == 'a':
             local_time = local_clock()
-            print('input the annotation label:')
-            current_annotation = str(input())
+            # print('input the annotation label:')
+            # current_annotation = str(input())
+            current_annotation = 'recognition'
+            duration = 0.0 #TODO: look into this value
+            minimal_trigger = new_trigger(current_annotation, duration, local_time + stable_offset_mean)
+            send_trigger(pub_socket, minimal_trigger)
+            pupil_time_align_val = request_pupil_time(pupil_remote)
+
+        if key == 'b':
+            local_time = local_clock()
+            current_annotation = 'recall'
             duration = 0.0 #TODO: look into this value
             minimal_trigger = new_trigger(current_annotation, duration, local_time + stable_offset_mean)
             send_trigger(pub_socket, minimal_trigger)
@@ -399,13 +414,15 @@ def main(emotibit_ip, emotibit_port):
                 print('invalid entry, please try again (Y/N):')
                 confirm = str(input())
 
-if __name__=='__main__':
-    EMOTIBIT_BUFFER_INTERVAL = 0.01  # 100hz
-    emotibit_save_location = './data_test'
-    record_num = 0
-    # emotibit_save_name = f'record_{record_num}.csv'
+# if __name__=='__main__':
+#     EMOTIBIT_BUFFER_INTERVAL = 0.01  # 100hz
+#     emotibit_save_location = './data_test'
+#     record_num = 0
+#     # emotibit_save_name = f'record_{record_num}.csv'
 
-    EMOTIBIT_PORT_NUMBER = 12345
-    EMOTIBIT_IP_DEFAULT = "127.0.0.1"
-    main(EMOTIBIT_IP_DEFAULT, EMOTIBIT_PORT_NUMBER)
+#     EMOTIBIT_PORT_NUMBER = 12345
+#     EMOTIBIT_IP_DEFAULT = "127.0.0.1"
+#     sensor_thread = Thread(target=collect_sensor_data, args = (EMOTIBIT_IP_DEFAULT, EMOTIBIT_PORT_NUMBER))
+#     sensor_thread.start()
+#     # collect_sensor_data(EMOTIBIT_IP_DEFAULT, EMOTIBIT_PORT_NUMBER)
 
