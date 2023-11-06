@@ -12,7 +12,6 @@ import msgpack as serializer
 import time
 import socket
 import sys
-
 from psychopy import visual, core, event
 from threading import Thread
 import os
