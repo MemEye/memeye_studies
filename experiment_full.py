@@ -21,10 +21,10 @@ import numpy as np
 from PIL import Image
 
 learning_time = 7  # Time each image is shown during learning phase (in seconds)
-recognition_time = 1 #5
-recall_time = 10
+recognition_time = 2 #5
+recall_time = 2 #10
 break_time = 1 #3  # Time between images during learning phase (in seconds)
-recall_time = 10  # Max time for each image during remembering phase (in seconds)
+recall_time = 2 #10  # Max time for each image during remembering phase (in seconds)
 
 exp_1_shown_images_dir = '/Users/monaabd/Desktop/meng/memeye_studies/experiment_1_images/people/shown/'
 exp_1_extra_images_dir = '/Users/monaabd/Desktop/meng/memeye_studies/experiment_1_images/people/extra/'
@@ -32,7 +32,7 @@ exp_1_extra_images_dir = '/Users/monaabd/Desktop/meng/memeye_studies/experiment_
 exp_2_shown_images_dir = '/Users/monaabd/Desktop/meng/memeye_studies/experiment_2_images/people/shown/'
 exp_2_extra_images_dir = '/Users/monaabd/Desktop/meng/memeye_studies/experiment_2_images/people/extra/'
 
-win = visual.Window(fullscr=True, color=[0, 0, 0])
+win = visual.Window(fullscr=False, color=[0, 0, 0])
 noise_texture = np.random.normal(loc=0.5, scale=0.3, size=(win.size[1], win.size[0])) # loc is the mean, scale is the standard deviation
 
 # Normalize the noise texture to be within the range [0, 1], as expected by PsychoPy
@@ -163,8 +163,8 @@ def filter_handler(unused_addr, *args):
             group_data.append((['PUPIL_TIME'], pupil_time_align_val))
         group_data.append((['IMAGE'], curr_image))
         group_data.append((['SUBJECT_RESPONSE'], subject_response))
-        if send_subject_response:
-            send_subject_response = False
+        if subject_response != '':
+            subject_response = ''
         emotibit_data_log.append(group_data)
         emotibit_last_collect_time = current_time
         emotibit_latest_osc_data = f"data: {group_data}"
@@ -330,6 +330,8 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
     global send_annotation_to_pupil
     global exit_sensors
     global curr_image
+    global bookend_annotation
+    global send_subject_response
     
     emotibit_server, emotibit_dispatch = emotibit_server_thread(emotibit_ip, emotibit_port)
 
@@ -396,11 +398,14 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
             stop_recording = False
         
         if send_subject_response:
+            local_time = local_clock()
             pupil_time_align_val = request_pupil_time(pupil_remote)
             minimal_trigger = new_trigger(subject_response, duration, local_time + stable_offset_mean)
             send_trigger(pub_socket, minimal_trigger)
+            send_subject_response = False
             
         if send_annotation_to_pupil:
+            local_time = local_clock()
             print('sending this annotation label')
             pupil_time_align_val = request_pupil_time(pupil_remote)
             minimal_trigger = new_trigger(current_annotation, duration, local_time + stable_offset_mean)
@@ -433,6 +438,7 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
             # stop recording
             pupil_remote.send_string("r")
             pupil_remote.recv_string()
+            exit_sensors = False
 
 
 def learning_phase(images):
@@ -528,10 +534,13 @@ def recognition_phase(images):
         keys = event.waitKeys(keyList=['1', '2', 'escape'], timeStamped=timer)
         if keys:
             key, reaction_time = keys[0]
-            if '1' in keys:
+            print(keys)
+            if key == '1':
+                print('Yes')
                 subject_response = 'Y'
                 send_subject_response = True
-            elif '2' in keys:
+            elif key == '2':
+                print('No')
                 subject_response = 'N'
                 send_subject_response = True
             if key == 'escape':
@@ -605,10 +614,11 @@ def recall_phase(images, recall_type):
         keys = event.waitKeys(keyList=['1', '2', 'escape'], timeStamped=timer)
         if keys:
             key, reaction_time = keys[0]
-            if '1' in keys:
+            print(keys)
+            if key == '1':
                 subject_response = 'Y'
                 send_subject_response = True
-            elif '2' in keys:
+            elif key == '2':
                 subject_response = 'N'
                 send_subject_response = True
             if key == 'escape':
@@ -676,8 +686,8 @@ def experiment_gui(exp_num):
 
     random.shuffle(shown_images)
     random.shuffle(extra_images)
-    # shown_images = shown_images[:2]
-    # extra_images = extra_images [:2]
+    shown_images = shown_images[:1]
+    extra_images = []
 
     # Run experiment
     # TODO: add in practice rounds for each phase type
@@ -717,7 +727,7 @@ def experiment_gui(exp_num):
         instructions(text)
         recall_phase(shown_images+extra_images, 'memory')
 
-    stop_recording = True
+    # stop_recording = True
     exit_sensors = True
     win.close()
     core.quit()
