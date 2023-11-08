@@ -1,7 +1,5 @@
-from pythonosc import dispatcher
-from pythonosc import osc_server
+from pythonosc import dispatcher, osc_server
 from threading import Thread
-import readchar
 import datetime
 import time
 import csv
@@ -13,7 +11,6 @@ import time
 import socket
 import sys
 from psychopy import visual, core, event
-from threading import Thread
 import os
 import random
 import json
@@ -37,10 +34,12 @@ break_time = 1 #3  # Time between images during learning phase (in seconds)
 recall_time = 2 #10  # Max time for each image during remembering phase (in seconds)
 
 exp_1_shown_images_dir = './experiment_1_images/people/shown/'
-exp_1_extra_images_dir = '.experiment_1_images/people/extra/'
+exp_1_extra_images_dir = './experiment_1_images/people/extra/'
+exp_1_practice_images_dir = './experiment_1_images/people/practice/'
 
 exp_2_shown_images_dir = './experiment_2_images/people/shown/'
 exp_2_extra_images_dir = './experiment_2_images/people/extra/'
+exp_2_practice_images_dir = './experiment_2_images/people/practice/'
 
 win = visual.Window(fullscr=False, color=[0, 0, 0])
 noise_texture = np.random.normal(loc=0.5, scale=0.3, size=(win.size[1], win.size[0])) # loc is the mean, scale is the standard deviation
@@ -456,7 +455,7 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
             exit_sensors = False
 
 
-def learning_phase(images):
+def learning_phase(images, practice = False):
     global win
     global noise_stim
     global image_pos
@@ -473,9 +472,10 @@ def learning_phase(images):
         img_name = os.path.basename(img_path)  # Get the filename of the image
         text = f"Name: {images_to_info.get(img_name, '').get('Name')} \n Fact: {images_to_info.get(img_name, '').get('Fact')}"
 
-        current_annotation = 'learning'
+        current_annotation = 'learning' if not practice else 'practice learning'
         curr_image = img_name
         send_annotation_to_pupil = True
+        
         image.draw()
         text_stim = visual.TextStim(win, text=text, pos=text_pos, color=(1, 1, 1))
         text_stim.draw()
@@ -493,9 +493,9 @@ def learning_phase(images):
         noise_stim.draw()
         win.flip()
         core.wait(break_time)
-        
 
-def recognition_phase(images):
+
+def recognition_phase(shown_images, extra_images, repeats = False, ratio_shown = 1, practice = False):
     global win
     global noise_stim
     global image_pos
@@ -509,10 +509,17 @@ def recognition_phase(images):
     global subject_response
     global send_subject_response
 
+
+    images_to_show = random.sample(shown_images, int(len(shown_images)*ratio_shown))
+    if repeats:
+        images_to_show = images_to_show*2
+    images = images_to_show + extra_images
+    random.shuffle(images)
+
     for img_path in images:
         img_name = os.path.basename(img_path)
 
-        current_annotation = 'recognition'
+        current_annotation = 'recognition' if not practice else 'practice recognition'
         curr_image = img_name
         send_annotation_to_pupil = True
 
@@ -525,6 +532,7 @@ def recognition_phase(images):
         # Calculate the scale factor for both dimensions
         scale_width = min((win_width * 0.6) / img_width, 1)
         scale_height = min((win_height * 0.6) / img_height, 1)
+        #TODO: tweak this presentation
 
         # Use the smaller scale factor to ensure the image does not exceed 80% of the screen
         scale_factor = min(scale_width, scale_height)
@@ -573,7 +581,7 @@ def recognition_phase(images):
             core.quit()
 
 
-def recall_phase(images, recall_type):
+def recall_phase(images_to_show, extra_images, recall_type, practice = False):
     global win
     global noise_stim
     global image_pos
@@ -586,6 +594,9 @@ def recall_phase(images, recall_type):
     global bookend_annotation
     global subject_response
     global send_subject_response
+
+    images = images_to_show + extra_images
+    random.shuffle(images)
 
     for img_path in images:
         img_name = os.path.basename(img_path)
@@ -606,7 +617,7 @@ def recall_phase(images, recall_type):
         image.draw()
         win.flip()
 
-        current_annotation = f'recall {recall_type}'
+        current_annotation = f'recall {recall_type}' if not practice else f'practice recall {recall_type}'
         curr_image = img_name
         send_annotation_to_pupil = True
     
@@ -618,11 +629,11 @@ def recall_phase(images, recall_type):
             core.quit()
         
         if recall_type == 'name':
-            text = "Do you remember this face? \n (1: Yes, 2: No)"
+            text = "Do you remember this person's name? \n (1: Yes, 2: No)"
         elif recall_type == 'fact':
             text = "Do you remember facts about this person? \n (1: Yes, 2: No)"
         elif recall_type == 'memory':
-            text = "Do you have a memory involing this person? \n (1: Yes, 2: No)"
+            text = "Do you have a memory involving this person? \n (1: Yes, 2: No)"
         text_stim = visual.TextStim(win, text=text, pos=center_pos, color=(1, 1, 1))
         text_stim.draw()
         win.flip()
@@ -639,8 +650,7 @@ def recall_phase(images, recall_type):
             if key == 'escape':
                 core.quit()
         
-        
-        current_annotation = f'recall {recall_type} verbal'
+        current_annotation = f'recall {recall_type} verbal' if not practice else f'practice recall {recall_type} verbal'
         curr_image = img_name
         send_annotation_to_pupil = True
 
@@ -690,60 +700,85 @@ def experiment_gui(exp_num):
         event.waitKeys(keyList=['1'])
 
     # Load images
-    # TODO: make sure images are properly shuffled
     # TODO: make sure text shown is what we want
     if exp_num == 1:
         shown_images = [os.path.join(exp_1_shown_images_dir, img) for img in os.listdir(exp_1_shown_images_dir) if img.endswith('.jpg')]
         extra_images = [os.path.join(exp_1_extra_images_dir, img) for img in os.listdir(exp_1_extra_images_dir) if img.endswith('.jpg')]
-    
+        practice_images = [os.path.join(exp_1_practice_images_dir, img) for img in os.listdir(exp_1_extra_images_dir) if img.endswith('.jpg')]
     if exp_num == 2:
         shown_images = [os.path.join(exp_2_shown_images_dir, img) for img in os.listdir(exp_2_shown_images_dir) if img.endswith('.jpg')]
         extra_images = [os.path.join(exp_2_extra_images_dir, img) for img in os.listdir(exp_2_extra_images_dir) if img.endswith('.jpg')]
-
+        practice_images = [os.path.join(exp_2_practice_images_dir, img) for img in os.listdir(exp_2_extra_images_dir) if img.endswith('.jpg')]
+    
     random.shuffle(shown_images)
     random.shuffle(extra_images)
+    #TODO: change this
     shown_images = shown_images[:1]
     extra_images = []
 
     # Run experiment
-    # TODO: add in practice rounds for each phase type
-
     start_recording = True
 
     if exp_num == 1:
         # Phase 1: Learning
-        text = "Instructions: \n You will be shown a sequence of images with the person's name and related facts. Please keep your attention on the screen and remember as mush as details as possible for each person. You will be tested on how much you remember after this. \n Press [1] to continue."
+        text = "Instructions: \n You will be shown a sequence of images with the person's name and related facts. Please keep your attention on the screen and remember as much as details as possible for each person. You will be tested on how much you remember after this. \n Press [1] to continue."
         instructions(text)
-        learning_phase(shown_images)
+        text = "We will now start the practice section of this phase. \n Press [1] to continue."
+        instructions(text)
+        learning_phase(practice_images, practice = True)
+        text = "We will now begin the learning phase. \n You will be shown a sequence of images with the person's name and related facts. Please keep your attention on the screen and remember as much as details as possible for each person. You will be tested on how much you remember after this. \n Press [1] to continue."
+        instructions(text)
+        learning_phase(practice_images)
         wait_for_continue("Press [1] to continue to the recognition phase")
-        text = "Instructions: \n You will be shown a sequence of images. Please keep your attention on the screen at all times. When you see the image, your job is just to look at it, it will automatically move forward to the next part. \n Press [1] to continue."
-    elif exp_num == 2:
-        text = "Instructions: \n You will be shown a sequence of famous people's images. Please keep your attention on the screen and remember as mush as details as possible for each person. You will be tested on how much you remember after this.  \n Press [1] to continue."
+        
    
     # Phase 2: Recognition  
+    
+    subtext = "" if exp_num == 1 else "famous people's"
+    text = f"Instructions: \n You will be shown a sequence of {subtext} images. Please keep your attention on the screen at all times. When you see the image, your job is just to look at it, it will automatically move forward to the next part. \n Press [1] to continue."
     instructions(text)
-    recognition_phase(shown_images+extra_images)
+    text = "We will now start the practice section of this phase. \n Press [1] to continue."
+    instructions(text)
+    recognition_phase(practice_images, [], repeats = False, ratio_shown = 1, practice=True)
+    text = f"We will now begin the recognition phase. \n You will be shown a sequence of {subtext} images. When you see the image, your job is just to look at it, it will automatically move forward to the next part. \n Press [1] to continue."
+    instructions(text)
+    #TODO: change this
+    recognition_phase(shown_images, extra_images, repeats = True, ratio_shown = 1)
 
     # Phase 3: Names
     wait_for_continue("Press [1] to continue to names phase")
-    text = "Instructions: \n You will be shown a sequence of images. Please keep your attention on the screen at all times. When you see the image, your job is just to look at it, it will automatically move forward to the next part. \n Press [1] to continue."
+    text = f"Instructions: \n You will be shown a sequence of {subtext} images. Please keep your attention on the screen at all times. When you see the image, your job is just to look at it, it will automatically move forward to the next part. \n Press [1] to continue."
     instructions(text)
-    recall_phase(shown_images+extra_images, 'name')
+    text = "We will now start the practice section of this phase. \n Press [1] to continue."
+    instructions(text)
+    recall_phase(practice_images, [], 'name', practice=True)
+    text = f"We will now begin the names phase. \n You will be shown a sequence of {subtext} images.Please keep your attention on the screen at all times. When you see the image, your job is just to look at it, it will automatically move forward to the next part. \n Press [1] to continue."
+    instructions(text)
+    recall_phase(shown_images, extra_images, 'name')
 
     # Phase 4: Facts
     wait_for_continue("Press [1] to continue to facts phase")
-    text = "Instructions: \n You will be shown a sequence of images. Please keep your attention on the screen at all times. When you see the image, your job is just to look at it, it will automatically move forward to the next part. \n Press [1] to continue."
+    text = f"Instructions: \n You will be shown a sequence of {subtext} images. Please keep your attention on the screen at all times. When you see the image, your job is just to look at it, it will automatically move forward to the next part. \n Press [1] to continue."
     instructions(text)
-    recall_phase(shown_images+extra_images, 'fact')
+    text = "We will now start the practice section of this phase. \n Press [1] to continue."
+    instructions(text)
+    recall_phase(practice_images, [], 'fact', practice = True)
+    text = f"We will now begin the facts phase. \n You will be shown a sequence of images. Please keep your attention on the screen at all times. When you see the image, your job is just to look at it, it will automatically move forward to the next part. \n Press [1] to continue."
+    instructions(text)
+    recall_phase(shown_images, extra_images, 'fact')
 
     # Phase 5: Memory
     if exp_num == 2:
         wait_for_continue("Press [1] to continue to memory phase")
-        text = "Instructions: \n You will be shown a sequence of images. Please keep your attention on the screen at all times. When you see the image, your job is just to look at it, it will automatically move forward to the next part. \n Press [1] to continue."
+        text = f"Instructions: \n You will be shown a sequence of {subtext} images. Please keep your attention on the screen at all times. When you see the image, your job is just to look at it, it will automatically move forward to the next part. \n Press [1] to continue."
         instructions(text)
-        recall_phase(shown_images+extra_images, 'memory')
+        text = "We will now start the practice section of this phase. \n Press [1] to continue."
+        instructions(text)
+        recall_phase(practice_images, [], 'memory', practice = True)
+        text = f"We will now begin the memory phase. \n You will be shown a sequence of images. Please keep your attention on the screen at all times. When you see the image, your job is just to look at it, it will automatically move forward to the next part. \n Press [1] to continue."
+        instructions(text)
+        recall_phase(shown_images, extra_images, 'memory')
 
-    # stop_recording = True
     exit_sensors = True
     win.close()
     core.quit()
@@ -753,10 +788,10 @@ if __name__=='__main__':
     with open(image_info_path, 'r') as file:
         images_to_info = json.load(file)
 
-    EMOTIBIT_PORT_NUMBER = 12345
-    EMOTIBIT_IP_DEFAULT = "127.0.0.1"
-    sensor_thread = Thread(target=collect_sensor_data, args = (EMOTIBIT_IP_DEFAULT, EMOTIBIT_PORT_NUMBER))
-    sensor_thread.start()
+    # EMOTIBIT_PORT_NUMBER = 12345
+    # EMOTIBIT_IP_DEFAULT = "127.0.0.1"
+    # sensor_thread = Thread(target=collect_sensor_data, args = (EMOTIBIT_IP_DEFAULT, EMOTIBIT_PORT_NUMBER))
+    # sensor_thread.start()
     
     experiment_gui(experiment_num)
 
