@@ -475,7 +475,7 @@ def learning_phase(images, practice = False):
         current_annotation = 'learning' if not practice else 'practice learning'
         curr_image = img_name
         send_annotation_to_pupil = True
-        
+
         image.draw()
         text_stim = visual.TextStim(win, text=text, pos=text_pos, color=(1, 1, 1))
         text_stim.draw()
@@ -704,11 +704,11 @@ def experiment_gui(exp_num):
     if exp_num == 1:
         shown_images = [os.path.join(exp_1_shown_images_dir, img) for img in os.listdir(exp_1_shown_images_dir) if img.endswith('.jpg')]
         extra_images = [os.path.join(exp_1_extra_images_dir, img) for img in os.listdir(exp_1_extra_images_dir) if img.endswith('.jpg')]
-        practice_images = [os.path.join(exp_1_practice_images_dir, img) for img in os.listdir(exp_1_extra_images_dir) if img.endswith('.jpg')]
+        practice_images = [os.path.join(exp_1_practice_images_dir, img) for img in os.listdir(exp_1_practice_images_dir) if img.endswith('.jpg')]
     if exp_num == 2:
         shown_images = [os.path.join(exp_2_shown_images_dir, img) for img in os.listdir(exp_2_shown_images_dir) if img.endswith('.jpg')]
         extra_images = [os.path.join(exp_2_extra_images_dir, img) for img in os.listdir(exp_2_extra_images_dir) if img.endswith('.jpg')]
-        practice_images = [os.path.join(exp_2_practice_images_dir, img) for img in os.listdir(exp_2_extra_images_dir) if img.endswith('.jpg')]
+        practice_images = [os.path.join(exp_2_practice_images_dir, img) for img in os.listdir(exp_2_practice_images_dir) if img.endswith('.jpg')]
     
     random.shuffle(shown_images)
     random.shuffle(extra_images)
@@ -725,10 +725,11 @@ def experiment_gui(exp_num):
         instructions(text)
         text = "We will now start the practice section of this phase. \n Press [1] to continue."
         instructions(text)
+        print(practice_images)
         learning_phase(practice_images, practice = True)
         text = "We will now begin the learning phase. \n You will be shown a sequence of images with the person's name and related facts. Please keep your attention on the screen and remember as much as details as possible for each person. You will be tested on how much you remember after this. \n Press [1] to continue."
         instructions(text)
-        learning_phase(practice_images)
+        learning_phase(shown_images)
         wait_for_continue("Press [1] to continue to the recognition phase")
         
    
