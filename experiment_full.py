@@ -20,17 +20,27 @@ import json
 import numpy as np
 from PIL import Image
 
+# VARIABLES THAT CAN CHANGE - ADJUST THESE TO CHANGE THE EXPERIMENT
+
+#TODO: play around with the hz and make sure data is interpolated properly, frequncies are what we want them to be
+EMOTIBIT_BUFFER_INTERVAL = 0.01  # 100hz
+data_save_location = './data'
+subject_id = 'test'
+experiment_num = 1
+subject_save_location = os.path.join(data_save_location, subject_id)
+
+
 learning_time = 7  # Time each image is shown during learning phase (in seconds)
 recognition_time = 2 #5
 recall_time = 2 #10
 break_time = 1 #3  # Time between images during learning phase (in seconds)
 recall_time = 2 #10  # Max time for each image during remembering phase (in seconds)
 
-exp_1_shown_images_dir = '/Users/monaabd/Desktop/meng/memeye_studies/experiment_1_images/people/shown/'
-exp_1_extra_images_dir = '/Users/monaabd/Desktop/meng/memeye_studies/experiment_1_images/people/extra/'
+exp_1_shown_images_dir = './experiment_1_images/people/shown/'
+exp_1_extra_images_dir = '.experiment_1_images/people/extra/'
 
-exp_2_shown_images_dir = '/Users/monaabd/Desktop/meng/memeye_studies/experiment_2_images/people/shown/'
-exp_2_extra_images_dir = '/Users/monaabd/Desktop/meng/memeye_studies/experiment_2_images/people/extra/'
+exp_2_shown_images_dir = './experiment_2_images/people/shown/'
+exp_2_extra_images_dir = './experiment_2_images/people/extra/'
 
 win = visual.Window(fullscr=False, color=[0, 0, 0])
 noise_texture = np.random.normal(loc=0.5, scale=0.3, size=(win.size[1], win.size[0])) # loc is the mean, scale is the standard deviation
@@ -45,8 +55,8 @@ text_pos = (0, -0.5)  # Text is centered, below the image
 center_pos = (0,0)
 
 
-EMOTIBIT_BUFFER_INTERVAL = 0.01  # 100hz
-emotibit_save_location = './data_test'
+
+
 record_num = 0
 emotibit_latest_osc_data = None
 emotibit_last_collect_time = time.time()
@@ -173,7 +183,7 @@ def filter_handler(unused_addr, *args):
         emotibit_test_output = False
 
 def emotibit_save_data(data_log):
-    global emotibit_save_location
+    global subject_save_location
     global record_num
 
     dict_data = []
@@ -189,14 +199,15 @@ def emotibit_save_data(data_log):
                 row_dict[col_name] = value
         dict_data.append(row_dict)
     df = pd.DataFrame(dict_data)
-    if not os.path.exists(emotibit_save_location):
-        os.makedirs(emotibit_save_location)
+    full_path = os.path.join(subject_save_location, f'experiment_{experiment_num}')
+    if not os.path.exists(full_path):
+        os.makedirs(full_path)
 
     # Create the full path to the file
-    full_path = os.path.join(emotibit_save_location, f'record_{record_num}.csv')
+    file_path = os.path.join(full_path,'record_{record_num}.csv')
 
     # Save the DataFrame to a CSV file
-    df.to_csv(full_path, index=False)
+    df.to_csv(file_path, index=False)
     record_num += 1
 
 def emotibit_server_thread(emotibit_ip, emotibit_port):
@@ -373,7 +384,11 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
             print('starting recording session')
             pupil_time_align_val = request_pupil_time(pupil_remote)
             emotibit_collect_data = True
-            pupil_remote.send_string("R")
+            full_path = os.path.join(subject_save_location, f'experiment_{experiment_num}')
+            if not os.path.exists(full_path):
+                os.makedirs(full_path)
+            message = f'R {full_path}'
+            pupil_remote.send_string(message)
             pupil_remote.recv_string()
             start_recording = False
         
@@ -667,7 +682,6 @@ def experiment_gui(exp_num):
     global start_recording
     global stop_recording
     global exit_sensors
-    # Parameters
     
     def wait_for_continue(message):
         message_stim = visual.TextStim(win=win, text=message)
@@ -676,6 +690,8 @@ def experiment_gui(exp_num):
         event.waitKeys(keyList=['1'])
 
     # Load images
+    # TODO: make sure images are properly shuffled
+    # TODO: make sure text shown is what we want
     if exp_num == 1:
         shown_images = [os.path.join(exp_1_shown_images_dir, img) for img in os.listdir(exp_1_shown_images_dir) if img.endswith('.jpg')]
         extra_images = [os.path.join(exp_1_extra_images_dir, img) for img in os.listdir(exp_1_extra_images_dir) if img.endswith('.jpg')]
@@ -733,18 +749,14 @@ def experiment_gui(exp_num):
     core.quit()
 
 if __name__=='__main__':
-    image_info_path = 'experiment_1_names_facts.json'
+    image_info_path = './experiment_1_names_facts.json'
     with open(image_info_path, 'r') as file:
         images_to_info = json.load(file)
-    EMOTIBIT_BUFFER_INTERVAL = 0.01  # 100hz
-    emotibit_save_location = './data_test'
-    record_num = 0
-    # emotibit_save_name = f'record_{record_num}.csv'
 
     EMOTIBIT_PORT_NUMBER = 12345
     EMOTIBIT_IP_DEFAULT = "127.0.0.1"
     sensor_thread = Thread(target=collect_sensor_data, args = (EMOTIBIT_IP_DEFAULT, EMOTIBIT_PORT_NUMBER))
     sensor_thread.start()
     
-    experiment_gui(1)
+    experiment_gui(experiment_num)
 
