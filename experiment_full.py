@@ -18,6 +18,7 @@ import numpy as np
 from PIL import Image
 
 # VARIABLES THAT CAN CHANGE - ADJUST THESE TO CHANGE THE EXPERIMENT
+#TODO: requirements.txt
 
 #TODO: play around with the hz and make sure data is interpolated properly, frequncies are what we want them to be
 EMOTIBIT_BUFFER_INTERVAL = 0.01  # 100hz
@@ -203,7 +204,7 @@ def emotibit_save_data(data_log):
         os.makedirs(full_path)
 
     # Create the full path to the file
-    file_path = os.path.join(full_path,'record_{record_num}.csv')
+    file_path = os.path.join(full_path,f'record_{record_num}.csv')
 
     # Save the DataFrame to a CSV file
     df.to_csv(file_path, index=False)
