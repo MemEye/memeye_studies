@@ -18,4 +18,6 @@ Steps:
     - subject_id is set to the current subjects ID/name
     - experiment_num is set to the experiment that this subject will perform
 6. Run through experiment intro
+7. Start audio recording on phone
 7. Run python script
+8. When finished with experiments for the day, upload to media lab account for backup
