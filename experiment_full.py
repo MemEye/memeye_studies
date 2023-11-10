@@ -438,6 +438,7 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
             pupil_time_align_val = request_pupil_time(pupil_remote)
             pupil_frame_index_align = get_current_frame_index(sub_socket)
             print(pupil_frame_index_align, 'aaaaaa')
+            print(pupil_time_align_val)
             start_recording = False
         
         if stop_recording:
@@ -455,6 +456,7 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
             pupil_time_align_val = request_pupil_time(pupil_remote)
             pupil_frame_index_align = get_current_frame_index(sub_socket)
             print(pupil_frame_index_align, 'aaaaaa')
+            print(pupil_time_align_val)
             emotibit_collect_data = False
             emotibit_save_data(emotibit_data_log)
             emotibit_data_log = []
@@ -467,6 +469,7 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
             pupil_time_align_val = request_pupil_time(pupil_remote)
             pupil_frame_index_align = get_current_frame_index(sub_socket)
             print(pupil_frame_index_align, 'aaaaaa')
+            print(pupil_time_align_val)
             minimal_trigger = new_trigger(subject_response, duration, local_time + stable_offset_mean)
             send_trigger(pub_socket, minimal_trigger)
             send_subject_response = False
@@ -477,6 +480,7 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
             pupil_time_align_val = request_pupil_time(pupil_remote)
             pupil_frame_index_align = get_current_frame_index(sub_socket)
             print(pupil_frame_index_align, 'aaaaaa')
+            print(pupil_time_align_val)
             minimal_trigger = new_trigger(current_annotation, duration, local_time + stable_offset_mean)
             send_trigger(pub_socket, minimal_trigger)
 
@@ -486,6 +490,7 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
             pupil_time_align_val = request_pupil_time(pupil_remote)
             pupil_frame_index_align = get_current_frame_index(sub_socket)
             print(pupil_frame_index_align, 'aaaaaa')
+            print(pupil_time_align_val)
             send_annotation_to_pupil = False
             if bookend_annotation:
                 current_annotation = ''
@@ -500,6 +505,8 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
             pupil_time_align_val = request_pupil_time(pupil_remote)
             pupil_frame_index_align = get_current_frame_index(sub_socket)
             print(pupil_frame_index_align, 'aaaaaa')
+            print(pupil_time_align_val)
+            print(pupil_time_align_val)
             emotibit_save_data(emotibit_data_log)
             local_time = local_clock()
             minimal_trigger = new_trigger(current_annotation, duration, local_time + stable_offset_mean)
