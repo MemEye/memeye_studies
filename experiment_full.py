@@ -18,7 +18,8 @@ from PIL import Image
 # VARIABLES THAT CAN CHANGE - ADJUST THESE TO CHANGE THE EXPERIMENT
 
 #TODO: play around with sensors more
-EMOTIBIT_BUFFER_INTERVAL = 0.01  # 100hz, fastest datastream is 25Hz, can probably do 0.04
+
+EMOTIBIT_BUFFER_INTERVAL = 0.02  # 50hz, fastest datastream is 25Hz, can probably do 0.04
 data_save_location = './data'
 subject_id = 'test'
 experiment_num = 1
@@ -28,7 +29,7 @@ subject_save_location = os.path.join(data_save_location, subject_id)
 learning_time = 1 #7  # Time each image is shown during learning phase (in seconds)
 recognition_time = 1 #5
 break_time = 1 #3  # Time between images during learning phase (in seconds)
-recall_time = 2 #10  # Max time for each image during remembering phase (in seconds)
+recall_time = 1 #10  # Max time for each image during remembering phase (in seconds)
 
 exp_1_shown_images_dir = './experiment_1_images/people/shown/'
 exp_1_extra_images_dir = './experiment_1_images/people/extra/'
@@ -165,7 +166,7 @@ def filter_handler(unused_addr, *args):
         group_data.append((['TIMESTAMP'], timestamp))
         if pupil_time_align_val != None:
             group_data.append((['PUPIL_TIME'], pupil_time_align_val))
-            group_data.append((['PUPIL_FRAME_INDEX'], pupil_frame_index_align))
+            # group_data.append((['PUPIL_FRAME_INDEX'], pupil_frame_index_align))
             pupil_time_align_val = None
             pupil_frame_index_align = None
         group_data.append((['IMAGE'], curr_image))
@@ -244,21 +245,21 @@ def setup_pupil_remote_connection(ip_address, port):
     pub_port = pupil_remote.recv_string()
     pub_socket = zmq.Socket(ctx, zmq.PUB)
     pub_socket.connect("tcp://127.0.0.1:{}".format(pub_port))
-    pub_socket.setsockopt_string(zmq.SUBSCRIBE, 'frame.world')
+    # pub_socket.setsockopt_string(zmq.SUBSCRIBE, 'frame.world')
 
     return pupil_remote, pub_socket
 
-def get_current_frame_index(pub_socket):
-    try:
-        topic, payload = pub_socket.recv_multipart(flags=zmq.NOBLOCK)
-        frame_data = serializer.unpackb(payload)
-        frame_index = frame_data.get('index', None)
-        return frame_index
-    except zmq.Again:
-        # No message received yet
-        pass
-    except Exception as e:
-        print(f"An error occurred getting frame index: {e}")
+# def get_current_frame_index(pub_socket):
+#     try:
+#         topic, payload = pub_socket.recv_multipart(flags=zmq.NOBLOCK)
+#         frame_data = serializer.unpackb(payload)
+#         frame_index = frame_data.get('index', None)
+#         return frame_index
+#     except zmq.Again:
+#         # No message received yet
+#         pass
+#     except Exception as e:
+#         print(f"An error occurred getting frame index: {e}")
 
 
 
@@ -314,10 +315,6 @@ def measure_clock_offset_stable(pupil_remote, clock_function, n_samples=10):
         measure_clock_offset(pupil_remote, clock_function) for x in range(n_samples)
     ]
     return sum(offsets) / len(offsets)  # mean offset
-
-
-def get_frame_index(pub_socket):
-    topic = 'frame.world'
     
 
 
@@ -400,7 +397,7 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
         if start_recording:
             print('starting recording session')
             pupil_time_align_val = request_pupil_time(pupil_remote)
-            pupil_frame_index_align = get_current_frame_index(pub_socket)
+            # pupil_frame_index_align = get_current_frame_index(pub_socket)
 
             emotibit_collect_data = True
             full_path = os.path.join(subject_save_location, f'experiment_{experiment_num}')
@@ -424,7 +421,7 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
                 current_annotation = ''
             
             pupil_time_align_val = request_pupil_time(pupil_remote)
-            pupil_frame_index_align = get_current_frame_index(pub_socket)
+            # pupil_frame_index_align = get_current_frame_index(pub_socket)
             emotibit_collect_data = False
             emotibit_save_data(emotibit_data_log)
             emotibit_data_log = []
@@ -435,7 +432,7 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
         if send_subject_response:
             local_time = local_clock()
             pupil_time_align_val = request_pupil_time(pupil_remote)
-            pupil_frame_index_align = get_current_frame_index(pub_socket)
+            # pupil_frame_index_align = get_current_frame_index(pub_socket)
             minimal_trigger = new_trigger(subject_response, duration, local_time + stable_offset_mean)
             send_trigger(pub_socket, minimal_trigger)
             send_subject_response = False
@@ -444,7 +441,7 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
             local_time = local_clock()
             print('sending this annotation label')
             pupil_time_align_val = request_pupil_time(pupil_remote)
-            pupil_frame_index_align = get_current_frame_index(pub_socket)
+            # pupil_frame_index_align = get_current_frame_index(pub_socket)
             minimal_trigger = new_trigger(current_annotation, duration, local_time + stable_offset_mean)
             send_trigger(pub_socket, minimal_trigger)
 
@@ -452,7 +449,7 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
             send_trigger(pub_socket, minimal_trigger)
             
             pupil_time_align_val = request_pupil_time(pupil_remote)
-            pupil_frame_index_align = get_current_frame_index(pub_socket)
+            # pupil_frame_index_align = get_current_frame_index(pub_socket)
             send_annotation_to_pupil = False
             if bookend_annotation:
                 current_annotation = ''
@@ -465,7 +462,7 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
             current_annotation = ''
             emotibit_server.shutdown()
             pupil_time_align_val = request_pupil_time(pupil_remote)
-            pupil_frame_index_align = get_current_frame_index(pub_socket)
+            # pupil_frame_index_align = get_current_frame_index(pub_socket)
             emotibit_save_data(emotibit_data_log)
             local_time = local_clock()
             minimal_trigger = new_trigger(current_annotation, duration, local_time + stable_offset_mean)
@@ -557,7 +554,6 @@ def recognition_phase(shown_images, extra_images, repeats = False, ratio_shown =
         # Calculate the scale factor for both dimensions
         scale_width = min((win_width * 0.6) / img_width, 1)
         scale_height = min((win_height * 0.6) / img_height, 1)
-        #TODO: tweak this presentation
 
         # Use the smaller scale factor to ensure the image does not exceed 80% of the screen
         scale_factor = min(scale_width, scale_height)
@@ -579,15 +575,15 @@ def recognition_phase(shown_images, extra_images, repeats = False, ratio_shown =
         text_stim = visual.TextStim(win, text=text, pos=center_pos, color=(1, 1, 1))
         text_stim.draw()
         win.flip()
-        keys = event.waitKeys(keyList=['1', '2', 'escape'], timeStamped=timer)
+        keys = event.waitKeys(keyList=['1', '2', 'num_1', 'num_2', 'escape'], timeStamped=timer)
         if keys:
             key, reaction_time = keys[0]
             print(keys)
-            if key == '1':
+            if key == '1' or key == 'num_1':
                 print('Yes')
                 subject_response = 'Y'
                 send_subject_response = True
-            elif key == '2':
+            elif key == '2'or key == 'num_2':
                 print('No')
                 subject_response = 'N'
                 send_subject_response = True
@@ -619,25 +615,49 @@ def recall_phase(images_to_show, extra_images, recall_type, practice = False):
     global bookend_annotation
     global subject_response
     global send_subject_response
+    global experiment_num
 
     images = images_to_show + extra_images
     random.shuffle(images)
 
     for img_path in images:
         img_name = os.path.basename(img_path)
-        image = visual.ImageStim(win, image=img_path, pos=image_pos, size=0.8)
+
+        img = Image.open(img_path)
+        img_width, img_height = img.size
+
+        # Get the size of the window
+        win_width, win_height = win.size
+
+        # Calculate the scale factor for both dimensions
+        scale_width = min((win_width * 0.6) / img_width, 1)
+        scale_height = min((win_height * 0.6) / img_height, 1)
+
+        # Use the smaller scale factor to ensure the image does not exceed 80% of the screen
+        scale_factor = min(scale_width, scale_height)
+
+        image = visual.ImageStim(win, image=img_path, size=(img_width * scale_factor, img_height * scale_factor), units = 'pix')
+
         text = ''
-        if recall_type == 'name':
-            text = "Use the following 10 seconds to try to recall the person's name in your mind. (Do not say out loud)"
-        elif recall_type == 'fact':
-            text = "Use the following 10 seconds to try to recall a fact with this person in your mind. (Do not say out loud)"
-        elif recall_type == 'memory':
-            text = "Use the following 10 seconds to try to recall a memory with this person your mind. (Do not say out loud)"
+        if experiment_num == 1:
+            if recall_type == 'name':
+                text = "Use the following 10 seconds to try to recall the person's name in your mind. (Do not say out loud)"
+            elif recall_type == 'fact':
+                text = "Use the following 10 seconds to try to recall a fact with this person in your mind. (Do not say out loud)"
+            elif recall_type == 'memory':
+                text = "Use the following 10 seconds to try to recall a memory with this person your mind. (Do not say out loud)"
+        elif experiment_num == 2:
+            if recall_type == 'name':
+                text = "Use the following 10 seconds to try to recall the person's name in your mind. (Do not say out loud)"
+            elif recall_type == 'fact':
+                text = "Use the following 10 seconds to try to recall a fact about this celebrity in your mind. (Do not say out loud). \n Example facts: They are an actor."
+            elif recall_type == 'memory':
+                text = "Use the following 10 seconds to try to recall a memory involving this celebrity in your mind. (Do not say out loud). \n Example memory: I saw their movie with my friends in 2008."
 
         text_stim = visual.TextStim(win, text=text, pos=center_pos, color=(1, 1, 1))
         text_stim.draw()
         win.flip()
-        core.wait(3)
+        core.wait(5)
         
         image.draw()
         win.flip()
@@ -662,14 +682,13 @@ def recall_phase(images_to_show, extra_images, recall_type, practice = False):
         text_stim = visual.TextStim(win, text=text, pos=center_pos, color=(1, 1, 1))
         text_stim.draw()
         win.flip()
-        keys = event.waitKeys(keyList=['1', '2', 'escape'], timeStamped=timer)
+        keys = event.waitKeys(keyList=['1', '2', 'num_1', 'num_2', 'escape'], timeStamped=timer)
         if keys:
             key, reaction_time = keys[0]
-            print(keys)
-            if key == '1':
+            if key == '1' or key == 'num_1':
                 subject_response = 'Y'
                 send_subject_response = True
-            elif key == '2':
+            elif key == '2'or key == 'num_2':
                 subject_response = 'N'
                 send_subject_response = True
             if key == 'escape':
@@ -689,7 +708,7 @@ def recall_phase(images_to_show, extra_images, recall_type, practice = False):
         text_stim = visual.TextStim(win, text=text, pos=center_pos, color=(1, 1, 1))
         text_stim.draw()
         win.flip()
-        core.wait(3)
+        core.wait(recall_time) #TODO: change this
 
         bookend_annotation = True
         send_annotation_to_pupil = True
@@ -705,7 +724,7 @@ def instructions(text):
     text_stim = visual.TextStim(win, text=text, pos=center_pos, color=(1, 1, 1))
     text_stim.draw()
     win.flip()
-    event.waitKeys(keyList=['1'])
+    event.waitKeys(keyList=['1', 'num_1'])
 
 
 def experiment_gui(exp_num):
@@ -717,6 +736,7 @@ def experiment_gui(exp_num):
     global start_recording
     global stop_recording
     global exit_sensors
+    global noise_stim
 
     # Load images
     if exp_num == 1:
@@ -731,16 +751,24 @@ def experiment_gui(exp_num):
     random.shuffle(shown_images)
     random.shuffle(extra_images)
     #TODO: change this
-    shown_images = shown_images[:1]
+    shown_images = shown_images[:2]
     extra_images = []
 
     # Run experiment
     start_recording = True
 
-    subtext = "" if exp_num == 1 else "famous people's"
+    text = "Before we begin, please look at the screen and relax for two minutes. \n Press [1] to continue."
+    instructions(text)
+    noise_stim.draw()
+    win.flip()
+    core.wait(120)
+
+    subtext = "" if exp_num == 1 else "famous people's "
 
     # practice phases are all here
-    text = f"This study will consist of several sections that involve looking at images of {subtext} faces. You will be asked to try to remember as much as you can and answer questions later. \n Press [1] to continue. "
+    text = "We will now begin data collection. \n Press [1] to continue."
+    instructions(text)
+    text = f"This study will consist of several sections that involve looking at images of {subtext}faces. You will be asked to try to remember as much as you can and answer questions later. \n Press [1] to continue. "
     instructions(text)
     text = "We will now begin a practice round of this study. \n Press [1] to continue"
 
@@ -750,34 +778,38 @@ def experiment_gui(exp_num):
         text = "We will now start the practice section of this phase. \n Press [1] to continue."
         instructions(text)
         learning_phase(practice_images, practice = True)
-        text = "End of practice learning phase. We will now move onto the next practice phase. \n Press [1] to continue."
+        text = "End of practice learning phase. Take a quick break, ask any questions. \n Press [1] to continue."
     
     #practice recognition phase
-    text = f"Instructions: \n You will be shown a sequence of {subtext} images. Please keep your attention on the screen at all times. When you see the image, your job is just to look at it, it will automatically move forward to the next part. \n Press [1] to continue."
+    instructions("Press [1] to continue to practice recognition phase")
+    text = f"Instructions: \n You will be shown a sequence of {subtext}images. Please keep your attention on the screen at all times. When you see the image, your job is just to look at it, it will automatically move forward to the next part. \n Press [1] to continue."
     instructions(text)
     text = "We will now start the practice section of this phase. \n Press [1] to continue."
     instructions(text)
     recognition_phase(practice_images, [], repeats = False, ratio_shown = 1, practice=True)
+    instructions('end of practice recognition phase. Take a quick break, ask any questions. \n Press [1] to continue.')
 
     #practice names phase
     instructions("Press [1] to continue to practice names phase")
-    text = f"Instructions: \n You will be shown a sequence of {subtext} images. Please keep your attention on the screen at all times. When you see the image, your job is just to look at it, it will automatically move forward to the next part. \n Press [1] to continue."
+    text = f"Instructions: \n You will be shown a sequence of {subtext}images. Please keep your attention on the screen at all times. When you see the image, your job is just to look at it, it will automatically move forward to the next part. \n Press [1] to continue."
     instructions(text)
     text = "We will now start the practice section of the names phase. \n Press [1] to continue."
     instructions(text)
     recall_phase(practice_images, [], 'name', practice=True)
+    instructions('end of practice names phase. Take a quick break, ask any questions. \n Press [1] to continue.')
 
     #practice facts phase
     instructions("Press [1] to continue to practice facts phase")
-    text = f"Instructions: \n You will be shown a sequence of {subtext} images. Please keep your attention on the screen at all times. When you see the image, your job is just to look at it, it will automatically move forward to the next part. \n Press [1] to continue."
+    text = f"Instructions: \n You will be shown a sequence of {subtext}images. Please keep your attention on the screen at all times. When you see the image, your job is just to look at it, it will automatically move forward to the next part. \n Press [1] to continue."
     instructions(text)
     text = "We will now start the practice section of the facts phase. \n Press [1] to continue."
     instructions(text)
     recall_phase(practice_images, [], 'fact', practice = True)
+    instructions('end of practice facts phase. Take a quick break, ask any questions. \n Press [1] to continue.')
 
     if exp_num == 2:
         instructions("Press [1] to continue to practice memory phase")
-        text = f"Instructions: \n You will be shown a sequence of {subtext} images. Please keep your attention on the screen at all times. When you see the image, your job is just to look at it, it will automatically move forward to the next part. \n Press [1] to continue."
+        text = f"Instructions: \n You will be shown a sequence of {subtext}images. Please keep your attention on the screen at all times. When you see the image, your job is just to look at it, it will automatically move forward to the next part. You will be asked to recount a personal memory involving this person. \n Press [1] to continue."
         instructions(text)
         text = "We will now start the practice section of this phase. \n Press [1] to continue."
         instructions(text)
@@ -793,30 +825,49 @@ def experiment_gui(exp_num):
         text = "We will now begin the learning phase. \n You will be shown a sequence of images with the person's name and related facts. Please keep your attention on the screen and remember as much details as possible for each person. You will be tested on how much you remember after this. \n Press [1] to continue."
         instructions(text)
         learning_phase(shown_images)
-        instructions("Press [1] to continue to the recognition phase")
+        instructions('End of learning phase. Press [1] to continue to the game break.')
+        noise_stim.draw()
+        win.flip()
+        core.wait(120)
+        instructions("End of game break. \n Press [1] to continue to the recognition phase")
    
     # Phase 2: Recognition  
-    text = f"We will now begin the recognition phase. \n You will be shown a sequence of {subtext} images. When you see the image, your job is just to look at it, it will automatically move forward to the next part. \n Press [1] to continue."
+    text = f"We will now begin the recognition phase. \n You will be shown a sequence of {subtext}images. When you see the image, your job is just to look at it, it will automatically move forward to the next part. \n Press [1] to continue."
     instructions(text)
-    #TODO: change this
-    recognition_phase(shown_images, extra_images, repeats = True, ratio_shown = 1)
+    if exp_num == 1:
+        recognition_phase(shown_images, extra_images, repeats = True, ratio_shown = 0.5)
+    else:
+        recognition_phase(shown_images, extra_images, repeats = False, ratio_shown = 1)
+    instructions('End of recognition phase. Press [1] to continue to the game break.')
+    noise_stim.draw()
+    win.flip()
+    core.wait(120)
 
     # Phase 3: Names
-    instructions("Press [1] to continue to names phase")
-    text = f"We will now begin the names phase. \n You will be shown a sequence of {subtext} images. Please keep your attention on the screen at all times. When you see the image, your job is just to look at it, it will automatically move forward to the next part. \n Press [1] to continue."
+    instructions("End of game break. \n Press [1] to continue to the names phase")
+    text = f"We will now begin the names phase. \n You will be shown a sequence of {subtext}images. Please keep your attention on the screen at all times. When you see the image, your job is just to look at it, it will automatically move forward to the next part. \n Press [1] to continue."
     instructions(text)
     recall_phase(shown_images, extra_images, 'name')
+    instructions('End of names phase. Press [1] to continue to the game break.')
+    noise_stim.draw()
+    win.flip()
+    core.wait(120)
 
     # Phase 4: Facts
-    instructions("Press [1] to continue to facts phase")
-    text = f"We will now begin the facts phase. \n You will be shown a sequence of images. Please keep your attention on the screen at all times. When you see the image, your job is just to look at it, it will automatically move forward to the next part. \n Press [1] to continue."
+    instructions("End of game break. \n Press [1] to continue to the facts phase")
+    text = f"We will now begin the facts phase. \n You will be shown a sequence of {subtext}images. Please keep your attention on the screen at all times. When you see the image, your job is just to look at it, it will automatically move forward to the next part. \n Press [1] to continue."
     instructions(text)
     recall_phase(shown_images, extra_images, 'fact')
+    instructions('End of facts phase. Press [1] to continue to the game break.')
+    noise_stim.draw()
+    win.flip()
+    core.wait(120)
+    
 
     # Phase 5: Memory
     if exp_num == 2:
-        instructions("Press [1] to continue to memory phase")
-        text = f"We will now begin the memory phase. \n You will be shown a sequence of images. Please keep your attention on the screen at all times. When you see the image, your job is just to look at it, it will automatically move forward to the next part. \n Press [1] to continue."
+        instructions("End of game break. \n Press [1] to continue to the memory phase")
+        text = f"You will be shown a sequence of {subtext}images. Please keep your attention on the screen at all times. When you see the image, your job is just to look at it, it will automatically move forward to the next part. You will be asked to recount a personal memory involving this person. \n Press [1] to continue."
         instructions(text)
         recall_phase(shown_images, extra_images, 'memory')
 
@@ -834,5 +885,5 @@ if __name__=='__main__':
     # sensor_thread = Thread(target=collect_sensor_data, args = (EMOTIBIT_IP_DEFAULT, EMOTIBIT_PORT_NUMBER))
     # sensor_thread.start()
     
-    experiment_gui(experiment_num)
+    experiment_gui(2)
 

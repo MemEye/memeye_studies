@@ -4,6 +4,7 @@ Prereqs:
 - Pupil Labs Software Downloaded
 - Emotibit Software Downloaded
 - Emotibit Config set to run on same network as computer
+- Restart lab computer
 
 Steps:
 0. Make sure to get consent and biographical/democgraphic info
