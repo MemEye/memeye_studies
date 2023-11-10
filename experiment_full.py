@@ -8,7 +8,7 @@ import zmq
 import msgpack as serializer
 import socket
 import sys
-from psychopy import visual, core, event
+from psychopy import visual, core, event, monitors
 import os
 import random
 import json
@@ -17,13 +17,17 @@ from PIL import Image
 
 # VARIABLES THAT CAN CHANGE - ADJUST THESE TO CHANGE THE EXPERIMENT
 
+#TODO: should we also record the session from the emotibit?
+
 #TODO: play around with sensors more
 
-#TODO: check on pupillabs microphone
+#TODO: microphone
 
 #TODO:  find tetris, look at pygame?
 
-#TODO: during game break send annotation
+#TODO: adjust psychopy window on lab comp
+
+#TODO: do full experiment timing
 
 
 EMOTIBIT_BUFFER_INTERVAL = 0.02  # 50hz, fastest datastream is 25Hz, can probably do 0.04
@@ -46,7 +50,20 @@ exp_2_shown_images_dir = './experiment_2_images/people/shown/'
 exp_2_extra_images_dir = './experiment_2_images/people/extra/'
 exp_2_practice_images_dir = './experiment_2_images/people/practice/'
 
-win = visual.Window(fullscr=False, color=[0, 0, 0])
+
+mon = monitors.Monitor('testMonitor')  # Replace 'testMonitor' with the name of your monitor
+screen_width, screen_height = mon.getSizePix()
+print(mon.getSizePix())
+window_height = screen_height - 50  # Adjust this value to leave space for the taskbar/dock
+win = visual.Window(
+    size=(1350, 740), 
+    pos=(0, 25),  # This centers the window vertically. Adjust as needed.
+    fullscr=False,  # Fullscreen is set to False
+    screen=0,
+    color=[0, 0, 0]
+)
+print(win.size)
+# win = visual.Window(fullscr=False, color=[0, 0, 0])
 noise_texture = np.random.normal(loc=0.5, scale=0.3, size=(win.size[1], win.size[0])) # loc is the mean, scale is the standard deviation
 
 # Normalize the noise texture to be within the range [0, 1], as expected by PsychoPy
@@ -252,21 +269,28 @@ def setup_pupil_remote_connection(ip_address, port):
     pub_port = pupil_remote.recv_string()
     pub_socket = zmq.Socket(ctx, zmq.PUB)
     pub_socket.connect("tcp://127.0.0.1:{}".format(pub_port))
-    # pub_socket.setsockopt_string(zmq.SUBSCRIBE, 'frame.world')
+    #SUB SOCKET
+    pupil_remote.send_string('SUB_PORT')
+    sub_port = pupil_remote.recv_string()
+    sub_socket = zmq.Socket(ctx, zmq.SUB)
+    sub_socket.connect("tcp://127.0.0.1:{}".format(sub_port))
 
-    return pupil_remote, pub_socket
+    # Subscribe to a topic, for example 'frame.world'
+    sub_socket.setsockopt_string(zmq.SUBSCRIBE, 'frame.world')
 
-# def get_current_frame_index(pub_socket):
-#     try:
-#         topic, payload = pub_socket.recv_multipart(flags=zmq.NOBLOCK)
-#         frame_data = serializer.unpackb(payload)
-#         frame_index = frame_data.get('index', None)
-#         return frame_index
-#     except zmq.Again:
-#         # No message received yet
-#         pass
-#     except Exception as e:
-#         print(f"An error occurred getting frame index: {e}")
+    return pupil_remote, pub_socket, sub_socket
+
+def get_current_frame_index(sub_socket):
+    try:
+        topic, payload, _ = sub_socket.recv_multipart(flags=zmq.NOBLOCK)
+        frame_data = serializer.unpackb(payload)
+        frame_index = frame_data.get('index', None)
+        return frame_index
+    except zmq.Again:
+        # No message received yet
+        pass
+    except Exception as e:
+        print(f"An error occurred getting frame index: {e}")
 
 
 
@@ -373,7 +397,7 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
 
         # 1. Setup network connection
     check_capture_exists(pupil_ip, pupil_port)
-    pupil_remote, pub_socket = setup_pupil_remote_connection(pupil_ip, pupil_port)
+    pupil_remote, pub_socket, sub_socket = setup_pupil_remote_connection(pupil_ip, pupil_port)
 
     # 2. Setup local clock function
     local_clock = time.perf_counter
@@ -403,8 +427,6 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
     while True:
         if start_recording:
             print('starting recording session')
-            pupil_time_align_val = request_pupil_time(pupil_remote)
-            # pupil_frame_index_align = get_current_frame_index(pub_socket)
 
             emotibit_collect_data = True
             full_path = os.path.join(subject_save_location, f'experiment_{experiment_num}')
@@ -413,6 +435,9 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
             message = f'R {full_path}'
             pupil_remote.send_string(message)
             pupil_remote.recv_string()
+            pupil_time_align_val = request_pupil_time(pupil_remote)
+            pupil_frame_index_align = get_current_frame_index(sub_socket)
+            print(pupil_frame_index_align, 'aaaaaa')
             start_recording = False
         
         if stop_recording:
@@ -428,7 +453,8 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
                 current_annotation = ''
             
             pupil_time_align_val = request_pupil_time(pupil_remote)
-            # pupil_frame_index_align = get_current_frame_index(pub_socket)
+            pupil_frame_index_align = get_current_frame_index(sub_socket)
+            print(pupil_frame_index_align, 'aaaaaa')
             emotibit_collect_data = False
             emotibit_save_data(emotibit_data_log)
             emotibit_data_log = []
@@ -439,7 +465,8 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
         if send_subject_response:
             local_time = local_clock()
             pupil_time_align_val = request_pupil_time(pupil_remote)
-            # pupil_frame_index_align = get_current_frame_index(pub_socket)
+            pupil_frame_index_align = get_current_frame_index(sub_socket)
+            print(pupil_frame_index_align, 'aaaaaa')
             minimal_trigger = new_trigger(subject_response, duration, local_time + stable_offset_mean)
             send_trigger(pub_socket, minimal_trigger)
             send_subject_response = False
@@ -448,7 +475,8 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
             local_time = local_clock()
             print('sending this annotation label')
             pupil_time_align_val = request_pupil_time(pupil_remote)
-            # pupil_frame_index_align = get_current_frame_index(pub_socket)
+            pupil_frame_index_align = get_current_frame_index(sub_socket)
+            print(pupil_frame_index_align, 'aaaaaa')
             minimal_trigger = new_trigger(current_annotation, duration, local_time + stable_offset_mean)
             send_trigger(pub_socket, minimal_trigger)
 
@@ -456,7 +484,8 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
             send_trigger(pub_socket, minimal_trigger)
             
             pupil_time_align_val = request_pupil_time(pupil_remote)
-            # pupil_frame_index_align = get_current_frame_index(pub_socket)
+            pupil_frame_index_align = get_current_frame_index(sub_socket)
+            print(pupil_frame_index_align, 'aaaaaa')
             send_annotation_to_pupil = False
             if bookend_annotation:
                 current_annotation = ''
@@ -469,7 +498,8 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
             current_annotation = ''
             emotibit_server.shutdown()
             pupil_time_align_val = request_pupil_time(pupil_remote)
-            # pupil_frame_index_align = get_current_frame_index(pub_socket)
+            pupil_frame_index_align = get_current_frame_index(sub_socket)
+            print(pupil_frame_index_align, 'aaaaaa')
             emotibit_save_data(emotibit_data_log)
             local_time = local_clock()
             minimal_trigger = new_trigger(current_annotation, duration, local_time + stable_offset_mean)
@@ -481,6 +511,9 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
             # stop recording
             pupil_remote.send_string("r")
             pupil_remote.recv_string()
+            sub_socket.close()
+            pupil_remote.close()
+            pub_socket.close()
             exit_sensors = False
 
 
@@ -646,25 +679,28 @@ def recall_phase(images_to_show, extra_images, recall_type, practice = False):
         image = visual.ImageStim(win, image=img_path, size=(img_width * scale_factor, img_height * scale_factor), units = 'pix')
 
         text = ''
-        if experiment_num == 1:
-            if recall_type == 'name':
-                text = "Use the following 10 seconds to try to recall the person's name in your mind. (Do not say out loud)"
-            elif recall_type == 'fact':
-                text = "Use the following 10 seconds to try to recall a fact with this person in your mind. (Do not say out loud)"
-            elif recall_type == 'memory':
-                text = "Use the following 10 seconds to try to recall a memory with this person your mind. (Do not say out loud)"
-        elif experiment_num == 2:
+        
+        if experiment_num == 2 and practice:
             if recall_type == 'name':
                 text = "Use the following 10 seconds to try to recall the person's name in your mind. (Do not say out loud)"
             elif recall_type == 'fact':
                 text = "Use the following 10 seconds to try to recall a fact about this celebrity in your mind. (Do not say out loud). \n Ex: They are an actor."
             elif recall_type == 'memory':
                 text = "Use the following 10 seconds to try to recall a memory involving this celebrity in your mind. (Do not say out loud). \n Ex: I saw their movie with my friends in 2008."
-
+        else:
+            if recall_type == 'name':
+                text = "Use the following 10 seconds to try to recall the person's name in your mind. (Do not say out loud)"
+            elif recall_type == 'fact':
+                text = "Use the following 10 seconds to try to recall a fact with this person in your mind. (Do not say out loud)"
+            elif recall_type == 'memory':
+                text = "Use the following 10 seconds to try to recall a memory with this person your mind. (Do not say out loud)"
         text_stim = visual.TextStim(win, text=text, pos=center_pos, color=(1, 1, 1))
         text_stim.draw()
         win.flip()
-        core.wait(5)
+        if practice:
+            core.wait(7)
+        else:
+            core.wait(5)
         
         image.draw()
         win.flip()
@@ -728,16 +764,28 @@ def recall_phase(images_to_show, extra_images, recall_type, practice = False):
             core.quit()
 
 def instructions(text):
+    global win
+    global center_pos
     text_stim = visual.TextStim(win, text=text, pos=center_pos, color=(1, 1, 1))
     text_stim.draw()
     win.flip()
     event.waitKeys(keyList=['1', 'num_1'])
 
 def game_break():
+    #TODO: check this works
+    global win
+    global center_pos
+    global current_annotation
+    global send_annotation_to_pupil
+    global bookend_annotation
     text_stim = visual.TextStim(win, text="2 Minute Game Break", pos=center_pos, color=(1, 1, 1))
     text_stim.draw()
     win.flip()
+    current_annotation = f'game break'
+    send_annotation_to_pupil = True
     core.wait(120)
+    bookend_annotation = True
+    send_annotation_to_pupil = True
 
 def experiment_gui(exp_num):
     global exp_1_shown_images_dir
@@ -777,8 +825,9 @@ def experiment_gui(exp_num):
 
     subtext = "" if exp_num == 1 else "famous people's "
 
+    #TODO: change slash to out of
     # practice phases are all here
-    text = "We will now begin the main study. \n Press [1] to continue."
+    text = "We will now begin the practice section. \n Press [1] to continue."
     instructions(text)
     text = f"This study will consist of several sections that involve looking at images of {subtext}faces. You will be asked to try to remember as much as you can and answer questions later. \n Press [1] to continue. "
     instructions(text)
@@ -796,14 +845,14 @@ def experiment_gui(exp_num):
     text = f"Instructions: \n You will be shown a sequence of {subtext}images. Please keep your attention on the screen at all times. When you see the image, your job is just to look at it, it will automatically move forward to the next part. \n Press [1] to continue."
     instructions(text)
     recognition_phase(practice_images, [], repeats = False, ratio_shown = 1, practice=True)
-    instructions('end of practice recognition phase. Take a quick break, ask any questions. \n Press [1] to continue.')
+    instructions('End of practice recognition phase. Take a quick break, ask any questions. \n Press [1] to continue.')
 
     #practice names phase
     instructions(f"We will now begin a practice names phase of exp. {exp_num}/2. \n Press [1] to continue")
     text = f"Instructions: \n You will be shown a sequence of {subtext}images. Please keep your attention on the screen at all times. When you see the image, your job is just to look at it, it will automatically move forward to the next part. \n Press [1] to continue."
     instructions(text)
     recall_phase(practice_images, [], 'name', practice=True)
-    instructions('end of practice names phase. Take a quick break, ask any questions. \n Press [1] to continue.')
+    instructions('End of practice names phase. Take a quick break, ask any questions. \n Press [1] to continue.')
 
     #practice facts phase
     instructions(f"We will now begin a practice facts phase of exp. {exp_num}/2. \n Press [1] to continue")
@@ -821,7 +870,8 @@ def experiment_gui(exp_num):
     text = "End of practice sections. If you have questions, please ask the researcher. \n Press [1] to continue"
     instructions(text)
     
-    text = "We will now begin the main experiment \n Press [1] to continue."
+    text = "We will now begin the main experiment. \n Press [1] to continue."
+    instructions(text)
 
     if exp_num == 1:
         # Phase 1: Learning
@@ -887,10 +937,10 @@ if __name__=='__main__':
     with open(image_info_path, 'r') as file:
         images_to_info = json.load(file)
 
-    # EMOTIBIT_PORT_NUMBER = 12345
-    # EMOTIBIT_IP_DEFAULT = "127.0.0.1"
-    # sensor_thread = Thread(target=collect_sensor_data, args = (EMOTIBIT_IP_DEFAULT, EMOTIBIT_PORT_NUMBER))
-    # sensor_thread.start()
+    EMOTIBIT_PORT_NUMBER = 12345
+    EMOTIBIT_IP_DEFAULT = "127.0.0.1"
+    sensor_thread = Thread(target=collect_sensor_data, args = (EMOTIBIT_IP_DEFAULT, EMOTIBIT_PORT_NUMBER))
+    sensor_thread.start()
     
     experiment_gui(experiment_num)
 
