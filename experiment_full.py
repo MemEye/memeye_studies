@@ -21,7 +21,6 @@ from PIL import Image
 
 #TODO: play around with sensors more
 
-#TODO: microphone
 
 #TODO:  find tetris, look at pygame?
 
@@ -746,7 +745,6 @@ def instructions(text):
     event.waitKeys(keyList=['1', 'num_1'])
 
 def game_break():
-    #TODO: check this works
     global win
     global center_pos
     global current_annotation
@@ -799,7 +797,6 @@ def experiment_gui(exp_num):
 
     subtext = "" if exp_num == 1 else "famous people's "
 
-    #TODO: change slash to out of
     # practice phases are all here
     text = "We will now begin the practice section. \n Press [1] to continue."
     instructions(text)
@@ -807,7 +804,7 @@ def experiment_gui(exp_num):
     instructions(text)
 
     if exp_num == 1:
-        text = f"We will now begin a practice learning phase of exp. {exp_num}/2. \n Press [1] to continue"
+        text = f"We will now begin a practice learning phase of exp. {exp_num} out of 2. \n Press [1] to continue"
         instructions(text)
         text = "Instructions: \n You will be shown a sequence of images with the person's name and related facts. Please keep your attention on the screen and remember as much as details as possible for each person. You will be tested on how much you remember after this. It will automatically move forward to the next part. \n Press [1] to continue."
         instructions(text)
@@ -815,28 +812,28 @@ def experiment_gui(exp_num):
         text = "End of practice learning phase. Take a quick break, ask any questions. \n Press [1] to continue."
     
     #practice recognition phase
-    instructions(f"We will now begin a practice recognition phase of exp. {exp_num}/2. \n Press [1] to continue")
+    instructions(f"We will now begin a practice recognition phase of exp. {exp_num} out of 2. \n Press [1] to continue")
     text = f"Instructions: \n You will be shown a sequence of {subtext}images. Please keep your attention on the screen at all times. When you see the image, your job is just to look at it, it will automatically move forward to the next part. \n Press [1] to continue."
     instructions(text)
     recognition_phase(practice_images, [], repeats = False, ratio_shown = 1, practice=True)
     instructions('End of practice recognition phase. Take a quick break, ask any questions. \n Press [1] to continue.')
 
     #practice names phase
-    instructions(f"We will now begin a practice names phase of exp. {exp_num}/2. \n Press [1] to continue")
+    instructions(f"We will now begin a practice names phase of exp. {exp_num} out of 2. \n Press [1] to continue")
     text = f"Instructions: \n You will be shown a sequence of {subtext}images. Please keep your attention on the screen at all times. When you see the image, your job is just to look at it, it will automatically move forward to the next part. \n Press [1] to continue."
     instructions(text)
     recall_phase(practice_images, [], 'name', practice=True)
     instructions('End of practice names phase. Take a quick break, ask any questions. \n Press [1] to continue.')
 
     #practice facts phase
-    instructions(f"We will now begin a practice facts phase of exp. {exp_num}/2. \n Press [1] to continue")
+    instructions(f"We will now begin a practice facts phase of exp. {exp_num} out of 2. \n Press [1] to continue")
     text = f"Instructions: \n You will be shown a sequence of {subtext}images. Please keep your attention on the screen at all times. When you see the image, your job is just to look at it, it will automatically move forward to the next part. \n Press [1] to continue."
     instructions(text)
     recall_phase(practice_images, [], 'fact', practice = True)
     instructions('End of practice facts phase. Take a quick break, ask any questions. \n Press [1] to continue.')
 
     if exp_num == 2:
-        instructions(f"We will now begin a practice memory phase of exp. {exp_num}/2. \n Press [1] to continue")
+        instructions(f"We will now begin a practice memory phase of exp. {exp_num} out of 2. \n Press [1] to continue")
         text = f"Instructions: \n You will be shown a sequence of {subtext}images. Please keep your attention on the screen at all times. When you see the image, your job is just to look at it, it will automatically move forward to the next part. You will be asked to recount a personal memory involving this person. \n Press [1] to continue."
         instructions(text)
         recall_phase(practice_images, [], 'memory', practice = True)
@@ -849,7 +846,7 @@ def experiment_gui(exp_num):
 
     if exp_num == 1:
         # Phase 1: Learning
-        text = f"We will now begin the learning phase of exp. {exp_num}/2. \n Press [1] to continue"
+        text = f"We will now begin the learning phase of exp. {exp_num} out of 2. \n Press [1] to continue"
         instructions(text)
         text = "Instructions: \n You will be shown a sequence of images with the person's name and related facts. Please keep your attention on the screen and remember as much details as possible for each person. You will be tested on how much you remember after this. It will automatically move forward to the next part. \n Press [1] to continue."
         instructions(text)
@@ -859,7 +856,7 @@ def experiment_gui(exp_num):
         instructions("End of game break. \n Press [1] to continue to the recognition phase")
    
     # Phase 2: Recognition  
-    text = f"We will now begin the recognition phase of exp. {exp_num}/2. \n Press [1] to continue"
+    text = f"We will now begin the recognition phase of exp. {exp_num} out of 2. \n Press [1] to continue"
     instructions(text)
     text = f"Instructions: \n You will be shown a sequence of {subtext}images. When you see the image, your job is just to look at it, it will automatically move forward to the next part. \n Press [1] to continue."
     instructions(text)
@@ -869,12 +866,11 @@ def experiment_gui(exp_num):
         recognition_phase(shown_images, extra_images, repeats = False, ratio_shown = 1)
     instructions('End of recognition phase. Press [1] to continue to the game break.')
 
-    #TODO: change static to 2 min game break
     game_break()
 
     # Phase 3: Names
     instructions("End of game break. \n Press [1] to continue to the names phase")
-    text = f"We will now begin the names phase of exp. {exp_num}/2. \n Press [1] to continue"
+    text = f"We will now begin the names phase of exp. {exp_num} out of 2. \n Press [1] to continue"
     instructions(text)
     text = f"Instructions: \n You will be shown a sequence of {subtext}images. Please keep your attention on the screen at all times. When you see the image, your job is just to look at it, it will automatically move forward to the next part. \n Press [1] to continue."
     instructions(text)
@@ -884,7 +880,7 @@ def experiment_gui(exp_num):
 
     # Phase 4: Facts
     instructions("End of game break. \n Press [1] to continue to the facts phase")
-    text = f"We will now begin the facts phase of exp. {exp_num}/2. \n Press [1] to continue"
+    text = f"We will now begin the facts phase of exp. {exp_num} out of 2. \n Press [1] to continue"
     instructions(text)
     text = f"Instructions: \n You will be shown a sequence of {subtext}images. Please keep your attention on the screen at all times. When you see the image, your job is just to look at it, it will automatically move forward to the next part. \n Press [1] to continue."
     instructions(text)
@@ -895,13 +891,13 @@ def experiment_gui(exp_num):
         instructions('End of facts phase. Press [1] to continue to the game break.')
         game_break()
         instructions("End of game break. \n Press [1] to continue to the memory phase")
-        text = f"We will now begin the memory phase of exp. {exp_num}/2. \n Press [1] to continue"
+        text = f"We will now begin the memory phase of exp. {exp_num} out of 2. \n Press [1] to continue"
         instructions(text)
         text = f"Instructions: \n You will be shown a sequence of {subtext}images. Please keep your attention on the screen at all times. When you see the image, your job is just to look at it, it will automatically move forward to the next part. You will be asked to recount a personal memory involving this person. \n Press [1] to continue."
         instructions(text)
         recall_phase(shown_images, extra_images, 'memory')
 
-    instructions(f"We have now completed experiment {exp_num}/2. Press [1] to exit")
+    instructions(f"We have now completed experiment {exp_num} out of 2. Press [1] to exit")
     exit_sensors = True
     win.close()
     core.quit()
