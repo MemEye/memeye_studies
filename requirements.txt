@@ -1,0 +1,7 @@
+python-osc
+numpy
+pandas
+pyzmq
+msgpack
+psychopy
+Pillow

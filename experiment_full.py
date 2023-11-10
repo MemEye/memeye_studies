@@ -2,12 +2,10 @@ from pythonosc import dispatcher, osc_server
 from threading import Thread
 import datetime
 import time
-import csv
 import pandas as pd
 import os
 import zmq
 import msgpack as serializer
-import time
 import socket
 import sys
 from psychopy import visual, core, event
@@ -18,19 +16,17 @@ import numpy as np
 from PIL import Image
 
 # VARIABLES THAT CAN CHANGE - ADJUST THESE TO CHANGE THE EXPERIMENT
-#TODO: requirements.txt
 
-#TODO: play around with the hz and make sure data is interpolated properly, frequncies are what we want them to be
-EMOTIBIT_BUFFER_INTERVAL = 0.01  # 100hz
+#TODO: play around with sensors more
+EMOTIBIT_BUFFER_INTERVAL = 0.01  # 100hz, fastest datastream is 25Hz, can probably do 0.04
 data_save_location = './data'
 subject_id = 'test'
 experiment_num = 1
 subject_save_location = os.path.join(data_save_location, subject_id)
 
 
-learning_time = 7  # Time each image is shown during learning phase (in seconds)
-recognition_time = 2 #5
-recall_time = 2 #10
+learning_time = 1 #7  # Time each image is shown during learning phase (in seconds)
+recognition_time = 1 #5
 break_time = 1 #3  # Time between images during learning phase (in seconds)
 recall_time = 2 #10  # Max time for each image during remembering phase (in seconds)
 
@@ -53,11 +49,8 @@ noise_stim = visual.ImageStim(win, image=noise_texture, size = win.size, units='
 image_pos = (0, 0.2)  # Image is centered, slightly above the center of the screen
 text_pos = (0, -0.5)  # Text is centered, below the image
 center_pos = (0,0)
-
-
-
-
 record_num = 0
+
 emotibit_latest_osc_data = None
 emotibit_last_collect_time = time.time()
 current_annotation = ''
@@ -65,6 +58,7 @@ emotibit_collect_data = False
 emotibit_test_output = False
 emotibit_data_log = []
 pupil_time_align_val = None
+pupil_frame_index_align = None
 curr_image = ''
 subject_response = ''
 
@@ -74,7 +68,6 @@ send_annotation_to_pupil = False
 exit_sensors = False
 bookend_annotation = False
 send_subject_response = False
-
 
 emotibit_sensor_buffers = {
     "/EmotiBit/0/PPG:RED": [],
@@ -148,6 +141,7 @@ def filter_handler(unused_addr, *args):
     global emotibit_test_output
     global EMOTIBIT_BUFFER_INTERVAL
     global pupil_time_align_val
+    global pupil_frame_index_align
     global curr_image
     global subject_response
 
@@ -171,6 +165,9 @@ def filter_handler(unused_addr, *args):
         group_data.append((['TIMESTAMP'], timestamp))
         if pupil_time_align_val != None:
             group_data.append((['PUPIL_TIME'], pupil_time_align_val))
+            group_data.append((['PUPIL_FRAME_INDEX'], pupil_frame_index_align))
+            pupil_time_align_val = None
+            pupil_frame_index_align = None
         group_data.append((['IMAGE'], curr_image))
         group_data.append((['SUBJECT_RESPONSE'], subject_response))
         if subject_response != '':
@@ -247,8 +244,22 @@ def setup_pupil_remote_connection(ip_address, port):
     pub_port = pupil_remote.recv_string()
     pub_socket = zmq.Socket(ctx, zmq.PUB)
     pub_socket.connect("tcp://127.0.0.1:{}".format(pub_port))
+    pub_socket.setsockopt_string(zmq.SUBSCRIBE, 'frame.world')
 
     return pupil_remote, pub_socket
+
+def get_current_frame_index(pub_socket):
+    try:
+        topic, payload = pub_socket.recv_multipart(flags=zmq.NOBLOCK)
+        frame_data = serializer.unpackb(payload)
+        frame_index = frame_data.get('index', None)
+        return frame_index
+    except zmq.Again:
+        # No message received yet
+        pass
+    except Exception as e:
+        print(f"An error occurred getting frame index: {e}")
+
 
 
 def request_pupil_time(pupil_remote):
@@ -305,6 +316,11 @@ def measure_clock_offset_stable(pupil_remote, clock_function, n_samples=10):
     return sum(offsets) / len(offsets)  # mean offset
 
 
+def get_frame_index(pub_socket):
+    topic = 'frame.world'
+    
+
+
 def notify(pupil_remote, notification):
     """Sends ``notification`` to Pupil Remote"""
     topic = "notify." + notification["subject"]
@@ -336,6 +352,7 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
     global emotibit_test_output
     global emotibit_data_log
     global pupil_time_align_val
+    global pupil_frame_index_align
     global start_recording
     global stop_recording
     global send_annotation_to_pupil
@@ -383,6 +400,8 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
         if start_recording:
             print('starting recording session')
             pupil_time_align_val = request_pupil_time(pupil_remote)
+            pupil_frame_index_align = get_current_frame_index(pub_socket)
+
             emotibit_collect_data = True
             full_path = os.path.join(subject_save_location, f'experiment_{experiment_num}')
             if not os.path.exists(full_path):
@@ -405,6 +424,7 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
                 current_annotation = ''
             
             pupil_time_align_val = request_pupil_time(pupil_remote)
+            pupil_frame_index_align = get_current_frame_index(pub_socket)
             emotibit_collect_data = False
             emotibit_save_data(emotibit_data_log)
             emotibit_data_log = []
@@ -415,6 +435,7 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
         if send_subject_response:
             local_time = local_clock()
             pupil_time_align_val = request_pupil_time(pupil_remote)
+            pupil_frame_index_align = get_current_frame_index(pub_socket)
             minimal_trigger = new_trigger(subject_response, duration, local_time + stable_offset_mean)
             send_trigger(pub_socket, minimal_trigger)
             send_subject_response = False
@@ -423,6 +444,7 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
             local_time = local_clock()
             print('sending this annotation label')
             pupil_time_align_val = request_pupil_time(pupil_remote)
+            pupil_frame_index_align = get_current_frame_index(pub_socket)
             minimal_trigger = new_trigger(current_annotation, duration, local_time + stable_offset_mean)
             send_trigger(pub_socket, minimal_trigger)
 
@@ -430,6 +452,7 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
             send_trigger(pub_socket, minimal_trigger)
             
             pupil_time_align_val = request_pupil_time(pupil_remote)
+            pupil_frame_index_align = get_current_frame_index(pub_socket)
             send_annotation_to_pupil = False
             if bookend_annotation:
                 current_annotation = ''
@@ -442,6 +465,7 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
             current_annotation = ''
             emotibit_server.shutdown()
             pupil_time_align_val = request_pupil_time(pupil_remote)
+            pupil_frame_index_align = get_current_frame_index(pub_socket)
             emotibit_save_data(emotibit_data_log)
             local_time = local_clock()
             minimal_trigger = new_trigger(current_annotation, duration, local_time + stable_offset_mean)
@@ -695,7 +719,6 @@ def experiment_gui(exp_num):
     global exit_sensors
 
     # Load images
-    # TODO: make sure text shown is what we want
     if exp_num == 1:
         shown_images = [os.path.join(exp_1_shown_images_dir, img) for img in os.listdir(exp_1_shown_images_dir) if img.endswith('.jpg')]
         extra_images = [os.path.join(exp_1_extra_images_dir, img) for img in os.listdir(exp_1_extra_images_dir) if img.endswith('.jpg')]
