@@ -650,9 +650,9 @@ def recall_phase(images_to_show, extra_images, recall_type, practice = False):
             if recall_type == 'name':
                 text = "Use the following 10 seconds to try to recall the person's name in your mind. (Do not say out loud)"
             elif recall_type == 'fact':
-                text = "Use the following 10 seconds to try to recall a fact about this celebrity in your mind. (Do not say out loud). \n Example facts: They are an actor."
+                text = "Use the following 10 seconds to try to recall a fact about this celebrity in your mind. (Do not say out loud). \n Ex: They are an actor."
             elif recall_type == 'memory':
-                text = "Use the following 10 seconds to try to recall a memory involving this celebrity in your mind. (Do not say out loud). \n Example memory: I saw their movie with my friends in 2008."
+                text = "Use the following 10 seconds to try to recall a memory involving this celebrity in your mind. (Do not say out loud). \n Ex: I saw their movie with my friends in 2008."
 
         text_stim = visual.TextStim(win, text=text, pos=center_pos, color=(1, 1, 1))
         text_stim.draw()
@@ -805,7 +805,7 @@ def experiment_gui(exp_num):
     text = "We will now start the practice section of the facts phase. \n Press [1] to continue."
     instructions(text)
     recall_phase(practice_images, [], 'fact', practice = True)
-    instructions('end of practice facts phase. Take a quick break, ask any questions. \n Press [1] to continue.')
+    instructions('End of practice facts phase. Take a quick break, ask any questions. \n Press [1] to continue.')
 
     if exp_num == 2:
         instructions("Press [1] to continue to practice memory phase")
@@ -885,5 +885,5 @@ if __name__=='__main__':
     # sensor_thread = Thread(target=collect_sensor_data, args = (EMOTIBIT_IP_DEFAULT, EMOTIBIT_PORT_NUMBER))
     # sensor_thread.start()
     
-    experiment_gui(2)
+    experiment_gui(experiment_num)
 
