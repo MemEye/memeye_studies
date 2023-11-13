@@ -17,7 +17,7 @@ Steps:
     - data_save_location is set to the location we want to store all experiment data
     - subject_id is set to the current subjects ID/name
     - experiment_num is set to the experiment that this subject will perform
-6. Run through experiment intro
+6. Run through experiment intro, inform participant to keep emotibit hand at rest and still, and to always look straight at the screen.
 7. Start audio recording on phone
 7. Run python script
 8. When finished with experiments for the day, upload to media lab account for backup
