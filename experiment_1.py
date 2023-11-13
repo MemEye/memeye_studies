@@ -21,11 +21,12 @@ from PIL import Image
 
 # VARIABLES THAT CAN CHANGE - ADJUST THESE TO CHANGE THE EXPERIMENT
 EMOTIBIT_BUFFER_INTERVAL = 0.02  # 50hz, fastest datastream is 25Hz, can probably do 0.04
-data_save_location = './data'
+data_save_location = 'data'
 subject_id = 'test'
 experiment_num = 1
 date_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-subject_save_location = os.path.join(data_save_location, subject_id, date_time)
+subject_save_location = os.path.join('./', data_save_location, subject_id, date_time)
+emotibit_save_location = os.path.join('E://memeye_experiments', data_save_location, subject_id, date_time)
 
 learning_time = 7  # Time each image is shown during learning phase (in seconds)
 recognition_time = 5
