@@ -185,7 +185,7 @@ def filter_handler(unused_addr, *args):
         emotibit_test_output = False
 
 def emotibit_save_data(data_log):
-    global subject_save_location
+    global emotibit_save_location
     global record_num
 
     dict_data = []
@@ -201,7 +201,7 @@ def emotibit_save_data(data_log):
                 row_dict[col_name] = value
         dict_data.append(row_dict)
     df = pd.DataFrame(dict_data)
-    full_path = os.path.join(subject_save_location, f'experiment_{experiment_num}')
+    full_path = os.path.join(emotibit_save_location, f'experiment_{experiment_num}')
     if not os.path.exists(full_path):
         os.makedirs(full_path)
 
