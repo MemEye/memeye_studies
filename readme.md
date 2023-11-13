@@ -12,12 +12,13 @@ Steps:
 2. Make sure in Pupil Capture that the save location is the desired location
 3. Run calibration on the participant using the Pupil Capture app
 4. Make sure the emotibit is connected to the computer and is streaming data, and it broadcasting data via OSC
-5. Within the experiment_full.py script, make sure the following variables are set properly:
+5. Within the experiment_1.py script, make sure the following variables are set properly:
     - EMOTIBIT_BUFFER_INTERVAL is set to the frequency we want to collect emotibit data at
     - data_save_location is set to the location we want to store all experiment data
     - subject_id is set to the current subjects ID/name
     - experiment_num is set to the experiment that this subject will perform
-6. Run through experiment intro, inform participant to keep emotibit hand at rest and still, and to always look straight at the screen.
+6. Run through experiment intro, inform participant to keep emotibit hand at rest and still, and to always look straight at the screen. Explain input system.
 7. Start audio recording on phone
-7. Run python script
-8. When finished with experiments for the day, upload to media lab account for backup
+8. Run python script
+    - During breaks check that the emotibit is still connected to the osciliscope.
+9. When finished with experiments for the day, upload to media lab account for backup

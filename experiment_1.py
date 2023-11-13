@@ -15,40 +15,27 @@ import json
 import numpy as np
 from PIL import Image
 
-# VARIABLES THAT CAN CHANGE - ADJUST THESE TO CHANGE THE EXPERIMENT
-
 #TODO: play around with sensors more
 
 #TODO: adjust psychopy window on lab comp
 
-#TODO: 48 choose 32 for each particpate 16 choose 12
-
-#TODO: remove exp 2, remove facts phase
-
-#TODO: 1 min game, 1 min chill/move
-
-#TODO: see where to reduce the number of screens
-
+# VARIABLES THAT CAN CHANGE - ADJUST THESE TO CHANGE THE EXPERIMENT
 EMOTIBIT_BUFFER_INTERVAL = 0.02  # 50hz, fastest datastream is 25Hz, can probably do 0.04
 data_save_location = './data'
 subject_id = 'test'
 experiment_num = 1
-subject_save_location = os.path.join(data_save_location, subject_id)
-#TODO: have date/time included in save location to prevent overwritting
-
+date_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+subject_save_location = os.path.join(data_save_location, subject_id, date_time)
 
 learning_time = 7  # Time each image is shown during learning phase (in seconds)
 recognition_time = 5
 break_time = 3  # Time between images during learning phase (in seconds)
 recall_time = 10  # Max time for each image during remembering phase (in seconds)
+recall_verbal_time = 7 #time to say name out loud
 
 exp_1_shown_images_dir = './experiment_1_images/people/shown/'
 exp_1_extra_images_dir = './experiment_1_images/people/extra/'
 exp_1_practice_images_dir = './experiment_1_images/people/practice/'
-
-exp_2_shown_images_dir = './experiment_2_images/people/shown/'
-exp_2_extra_images_dir = './experiment_2_images/people/extra/'
-exp_2_practice_images_dir = './experiment_2_images/people/practice/'
 
 
 mon = monitors.Monitor('testMonitor')  # Replace 'testMonitor' with the name of your monitor
@@ -552,11 +539,14 @@ def recognition_phase(shown_images, extra_images, repeats = False, ratio_shown =
     global subject_response
     global send_subject_response
 
-
-    images_to_show = random.sample(shown_images, int(len(shown_images)*ratio_shown))
+    if ratio_shown != 1:
+        images_to_show = random.sample(shown_images, int(len(shown_images)*ratio_shown))
+    else:
+        images_to_show = shown_images
     if repeats:
         images_to_show = images_to_show*2
     images = images_to_show + extra_images
+
     random.shuffle(images)
 
     for img_path in images:
@@ -627,6 +617,7 @@ def recall_phase(images_to_show, extra_images, recall_type, practice = False):
     global win
     global noise_stim
     global recall_time
+    global recall_verbal_time
     global break_time
     global current_annotation
     global curr_image
@@ -638,6 +629,21 @@ def recall_phase(images_to_show, extra_images, recall_type, practice = False):
 
     images = images_to_show + extra_images
     random.shuffle(images)
+
+    if recall_type == 'name':
+        text = "Use the following 10 seconds to try to recall the person's name in your mind. \n \n (Do not say out loud)"
+    elif recall_type == 'fact':
+        text = "Use the following 10 seconds to try to recall a fact with this person in your mind. \n \n (Do not say out loud)"
+    elif recall_type == 'memory':
+        text = "Use the following 10 seconds to try to recall a personal memory with this person your mind. \n \n (Do not say out loud)"
+    
+    text_stim = visual.TextStim(win, text=text, pos=(0,0), color=(1, 1, 1))
+    text_stim.draw()
+    win.flip()
+    if practice:
+        core.wait(7)
+    else:
+        core.wait(5)
 
     for img_path in images:
         img_name = os.path.basename(img_path)
@@ -656,30 +662,6 @@ def recall_phase(images_to_show, extra_images, recall_type, practice = False):
         scale_factor = min(scale_width, scale_height)
 
         image = visual.ImageStim(win, image=img_path, size=(img_width * scale_factor, img_height * scale_factor), units = 'pix')
-
-        text = ''
-        
-        if experiment_num == 2 and practice:
-            if recall_type == 'name':
-                text = "Use the following 10 seconds to try to recall the person's name in your mind. \n \n (Do not say out loud)"
-            elif recall_type == 'fact':
-                text = "Use the following 10 seconds to try to recall a fact about this celebrity in your mind. \n \n (Do not say out loud). \n \n Ex: They are an actor."
-            elif recall_type == 'memory':
-                text = "Use the following 10 seconds to try to recall a personal memory involving this celebrity in your mind. \n \n (Do not say out loud). \n \n Ex: I saw their movie with my friends in 2008."
-        else:
-            if recall_type == 'name':
-                text = "Use the following 10 seconds to try to recall the person's name in your mind. \n \n (Do not say out loud)"
-            elif recall_type == 'fact':
-                text = "Use the following 10 seconds to try to recall a fact with this person in your mind. \n \n (Do not say out loud)"
-            elif recall_type == 'memory':
-                text = "Use the following 10 seconds to try to recall a personal memory with this person your mind. \n \n (Do not say out loud)"
-        text_stim = visual.TextStim(win, text=text, pos=(0,0), color=(1, 1, 1))
-        text_stim.draw()
-        win.flip()
-        if practice:
-            core.wait(7)
-        else:
-            core.wait(5)
         
         image.draw()
         win.flip()
@@ -721,20 +703,20 @@ def recall_phase(images_to_show, extra_images, recall_type, practice = False):
         send_annotation_to_pupil = True
 
         if recall_type == 'name':
-            text = "Now try your best to say the person's name out loud. \n \n It's ok if it's wrong or if you cannot recall it."
+            text = "Now try your best to say the person's name out loud."
         elif recall_type == 'fact':
-            text = "Now try your best to say the person's facts out loud. \n \n It's ok if it's wrong or if you cannot recall it."
+            text = "Now try your best to say the person's facts out loud."
         elif recall_type == 'memory':
-            text = "Now try your best to say the memory out loud. \n \n It's ok if it's wrong or if you cannot recall it."
+            text = "Now try your best to say the memory out loud."
 
         text_stim = visual.TextStim(win, text=text, pos=(0,0), color=(1, 1, 1))
         text_stim.draw()
         win.flip()
-        core.wait(recall_time)
+        core.wait(recall_verbal_time)
 
         bookend_annotation = True
         send_annotation_to_pupil = True
-        # Break between images (only during learning phase)
+
         noise_stim.draw()
         win.flip()
         core.wait(break_time)
@@ -749,25 +731,32 @@ def instructions(text):
     win.flip()
     event.waitKeys(keyList=['1', 'num_1'])
 
-def game_break():
+def game_relax_break():
     global win
     global current_annotation
     global send_annotation_to_pupil
     global bookend_annotation
-    text_stim = visual.TextStim(win, text="2 Minute Game Break", pos=(0,0), color=(1, 1, 1))
+    text_stim = visual.TextStim(win, text="1 Minute Game Break", pos=(0,0), color=(1, 1, 1))
     text_stim.draw()
     win.flip()
     current_annotation = f'game break'
     send_annotation_to_pupil = True
-    core.wait(120)
+    core.wait(60)
     bookend_annotation = True
     send_annotation_to_pupil = True
+    text_stim = visual.TextStim(win, text="1 Minute Relax Break", pos=(0,0), color=(1, 1, 1))
+    text_stim.draw()
+    win.flip()
+    current_annotation = f'relax break'
+    send_annotation_to_pupil = True
+    core.wait(60)
+    bookend_annotation = True
+    send_annotation_to_pupil = True
+
 
 def experiment_gui(exp_num):
     global exp_1_shown_images_dir
     global exp_1_extra_images_dir
-    global exp_2_shown_images_dir
-    global exp_2_extra_images_dir
     global win
     global start_recording
     global stop_recording
@@ -775,20 +764,19 @@ def experiment_gui(exp_num):
     global noise_stim
 
     # Load images
-    if exp_num == 1:
-        shown_images = [os.path.join(exp_1_shown_images_dir, img) for img in os.listdir(exp_1_shown_images_dir) if img.endswith('.jpg')]
-        extra_images = [os.path.join(exp_1_extra_images_dir, img) for img in os.listdir(exp_1_extra_images_dir) if img.endswith('.jpg')]
-        practice_images = [os.path.join(exp_1_practice_images_dir, img) for img in os.listdir(exp_1_practice_images_dir) if img.endswith('.jpg')]
-    if exp_num == 2:
-        shown_images = [os.path.join(exp_2_shown_images_dir, img) for img in os.listdir(exp_2_shown_images_dir) if img.endswith('.jpg')]
-        extra_images = [os.path.join(exp_2_extra_images_dir, img) for img in os.listdir(exp_2_extra_images_dir) if img.endswith('.jpg')]
-        practice_images = [os.path.join(exp_2_practice_images_dir, img) for img in os.listdir(exp_2_practice_images_dir) if img.endswith('.jpg')]
-    
+    shown_images = [os.path.join(exp_1_shown_images_dir, img) for img in os.listdir(exp_1_shown_images_dir) if img.endswith('.jpg')]
+    extra_images = [os.path.join(exp_1_extra_images_dir, img) for img in os.listdir(exp_1_extra_images_dir) if img.endswith('.jpg')]
+    practice_images = [os.path.join(exp_1_practice_images_dir, img) for img in os.listdir(exp_1_practice_images_dir) if img.endswith('.jpg')]
+        
     random.shuffle(shown_images)
     random.shuffle(extra_images)
-    #TODO: change this
+
+    #TESTING VARS
     # shown_images = shown_images[:2]
     # extra_images = []
+
+    shown_images = random.sample(shown_images, 32)
+    extra_images = random.sample(extra_images, 12)
 
     # Run experiment
     start_recording = True
@@ -799,49 +787,32 @@ def experiment_gui(exp_num):
     win.flip()
     core.wait(120)
 
-    subtext = "" if exp_num == 1 else "famous people's "
-
     # practice phases are all here
     text = "We will now begin the practice section. \n \n Press [1] to continue."
     instructions(text)
-    text = f"This study will consist of several sections that involve looking at images of {subtext}faces. \n \n You will be asked to try to remember as many details as you can and answer questions later. \n \n Press [1] to continue. "
+    text = f"This study will consist of several sections that involve looking at images of faces. \n \n You will be asked to try to remember as many details as you can and answer questions later. \n \n Press [1] to continue. "
     instructions(text)
 
-    if exp_num == 1:
-        text = f"We will now begin a practice learning phase of experiment {exp_num} out of 2. \n \n Press [1] to continue"
-        instructions(text)
-        text = "Instructions: \n \n You will be shown a sequence of images with the person's name and related facts. \n \n Please keep your attention on the screen and remember as many details as possible for each person. \n \n You will be tested on how much you remember after this. \n \n It will automatically move forward to the next part. \n \n Press [1] to continue."
-        instructions(text)
-        learning_phase(practice_images, practice = True)
-        text = "End of practice learning phase. \n \n Take a quick break, ask any questions. \n \n Press [1] to continue."
-    
+    text = f"We will now begin a practice learning phase of the experiment. \n \n Press [1] to continue"
+    instructions(text)
+    text = "Instructions: \n \n You will be shown a sequence of images with the person's name and related facts. \n \n Please keep your attention on the screen and remember as many details as possible for each person. \n \n You will be tested on how much you remember after this. \n \n It will automatically move forward to the next part. \n \n Press [1] to continue."
+    instructions(text)
+    learning_phase(practice_images, practice = True)
+    text = "End of practice learning phase. \n \n Take a quick break, ask any questions. \n \n Press [1] to continue."
+
     #practice recognition phase
-    instructions(f"We will now begin a practice recognition phase of experiment {exp_num} out of 2. \n \n Press [1] to continue")
-    text = f"Instructions: \n \n You will be shown a sequence of {subtext}images. \n \n Please keep your attention on the screen at all times. \n \n When you see the image, your job is just to look at it - it will automatically move forward to the next part. \n \n Press [1] to continue."
+    instructions(f"We will now begin a practice recognition phase of the experiment. \n \n Press [1] to continue")
+    text = f"Instructions: \n \n You will be shown a sequence of images. \n \n Please keep your attention on the screen at all times. \n \n When you see the image, your job is just to look at it - it will automatically move forward to the next part. \n \n Press [1] to continue."
     instructions(text)
     recognition_phase(practice_images, [], repeats = False, ratio_shown = 1, practice=True)
     instructions('End of practice recognition phase. \n \n Take a quick break, ask any questions. \n \n Press [1] to continue.')
 
     #practice names phase
-    instructions(f"We will now begin a practice names phase of experiment {exp_num} out of 2. \n \n Press [1] to continue")
-    text = f"Instructions: \n \n You will be shown a sequence of {subtext}images. \n \n Please keep your attention on the screen at all times. \n \n When you see the image, your job is just to look at it - it will automatically move forward to the next part. \n \n Press [1] to continue."
+    instructions(f"We will now begin a practice names phase of the experiment. \n \n Press [1] to continue")
+    text = f"Instructions: \n \n You will be shown a sequence of images. \n \n Please keep your attention on the screen at all times. \n \n When you see the image, your job is just to look at it - it will automatically move forward to the next part. \n \n Press [1] to continue."
     instructions(text)
     recall_phase(practice_images, [], 'name', practice=True)
     instructions('End of practice names phase. \n \n  Take a quick break, ask any questions. \n \n Press [1] to continue.')
-
-    #practice facts phase
-    instructions(f"We will now begin a practice facts phase of experiment {exp_num} out of 2. \n \n Press [1] to continue")
-    text = f"Instructions: \n \n You will be shown a sequence of {subtext}images. \n \n Please keep your attention on the screen at all times. \n \n When you see the image, your job is just to look at it - it will automatically move forward to the next part. \n \n Press [1] to continue."
-    instructions(text)
-    recall_phase(practice_images, [], 'fact', practice = True)
-    instructions('End of practice facts phase. \n \n Take a quick break, ask any questions. \n \n Press [1] to continue.')
-
-    if exp_num == 2:
-        instructions(f"We will now begin a practice memory phase of experiment {exp_num} out of 2. \n \n Press [1] to continue")
-        text = f"Instructions: \n \n You will be shown a sequence of {subtext}images. \n \n Please keep your attention on the screen at all times. \n \n When you see the image, your job is just to look at it - it will automatically move forward to the next part. \n \n You will be asked to recount a personal memory involving this person. \n \n Press [1] to continue."
-        instructions(text)
-        recall_phase(practice_images, [], 'memory', practice = True)
-        instructions('End of practice memory phase. \n \n Take a quick break, ask any questions. \n \n Press [1] to continue.')
 
     text = "End of practice sections. \n \n If you have questions, please ask the researcher. \n \n Press [1] to continue"
     instructions(text)
@@ -849,60 +820,37 @@ def experiment_gui(exp_num):
     text = "We will now begin the main experiment. \n \n Press [1] to continue."
     instructions(text)
 
-    if exp_num == 1:
-        # Phase 1: Learning
-        text = f"We will now begin the learning phase of experiment {exp_num} out of 2. \n \n Press [1] to continue"
-        instructions(text)
-        text = "Instructions: \n \n You will be shown a sequence of images with the person's name and related facts. \n \n Please keep your attention on the screen and remember as many details as possible for each person. \n \n You will be tested on how much you remember after this. \n \n It will automatically move forward to the next part. \n \n Press [1] to continue."
-        instructions(text)
-        learning_phase(shown_images)
-        instructions('End of learning phase. \n \n Press [1] to continue to the game break.')
-        game_break()
-        instructions("End of game break. \n \n Press [1] to continue to the recognition phase")
+    # Phase 1: Learning
+    text = f"We will now begin the learning phase of the experiment. \n \n Press [1] to continue"
+    instructions(text)
+    text = "Instructions: \n \n You will be shown a sequence of images with the person's name and related facts. \n \n Please keep your attention on the screen and remember as many details as possible for each person. \n \n You will be tested on how much you remember after this. \n \n It will automatically move forward to the next part. \n \n Press [1] to continue."
+    instructions(text)
+    learning_phase(shown_images)
+    instructions('End of learning phase. \n \n Press [1] to continue to the game/relax break.')
+    game_relax_break()
+    instructions("End of game/relax break. \n \n Press [1] to continue to the recognition phase")
    
     # Phase 2: Recognition  
-    text = f"We will now begin the recognition phase of experiment {exp_num} out of 2. \n \n Press [1] to continue"
+    text = f"We will now begin the recognition phase of the experiment. \n \n Press [1] to continue"
     instructions(text)
-    text = f"Instructions: \n \n You will be shown a sequence of {subtext}images. \n \n When you see the image, your job is just to look at it - it will automatically move forward to the next part. \n \n Press [1] to continue."
+    text = f"Instructions: \n \n You will be shown a sequence of images. \n \n When you see the image, your job is just to look at it - it will automatically move forward to the next part. \n \n Press [1] to continue."
     instructions(text)
-    if exp_num == 1:
-        recognition_phase(shown_images, extra_images, repeats = False, ratio_shown = 1)
-    else:
-        recognition_phase(shown_images, extra_images, repeats = False, ratio_shown = 1)
-    instructions('End of recognition phase. \n \n Press [1] to continue to the game break.')
+    recognition_phase(shown_images, extra_images, repeats = False, ratio_shown = 1)
+    instructions('End of recognition phase. \n \n Press [1] to continue to the game/relax break.')
 
-    game_break()
+    game_relax_break()
 
     # Phase 3: Names
-    instructions("End of game break. \n \n Press [1] to continue to the names phase")
-    text = f"We will now begin the names phase of experiment {exp_num} out of 2. \n \n Press [1] to continue"
+    instructions("End of game/relax break. \n \n Press [1] to continue to the names phase")
+    text = f"We will now begin the names phase of the experiment. \n \n Press [1] to continue"
     instructions(text)
-    text = f"Instructions: \n \n You will be shown a sequence of {subtext}images. \n \n Please keep your attention on the screen at all times. \n \n When you see the image, your job is just to look at it - it will automatically move forward to the next part. \n \n Press [1] to continue."
+    text = f"Instructions: \n \n You will be shown a sequence of images. \n \n Please keep your attention on the screen at all times. \n \n When you see the image, your job is just to look at it - it will automatically move forward to the next part. \n \n Press [1] to continue."
     instructions(text)
-    recall_phase(shown_images, extra_images, 'name')
-    instructions('End of names phase. \n \n Press [1] to continue to the game break.')
-    game_break()
+    recall_phase(shown_images, [], 'name')
+    instructions('End of names phase. \n \n Press [1] to continue.')
+    game_relax_break()
 
-    # Phase 4: Facts
-    instructions("End of game break. \n \n Press [1] to continue to the facts phase")
-    text = f"We will now begin the facts phase of experiment {exp_num} out of 2. \n \n Press [1] to continue"
-    instructions(text)
-    text = f"Instructions: \n \n You will be shown a sequence of {subtext}images. \n \n Please keep your attention on the screen at all times. \n \n When you see the image, your job is just to look at it - it will automatically move forward to the next part. \n \n Press [1] to continue."
-    instructions(text)
-    recall_phase(shown_images, extra_images, 'fact')
-
-    # Phase 5: Memory
-    if exp_num == 2:
-        instructions('End of facts phase. \n \n Press [1] to continue to the game break.')
-        game_break()
-        instructions("End of game break. \n \n Press [1] to continue to the memory phase")
-        text = f"We will now begin the memory phase of experiment {exp_num} out of 2. \n \n Press [1] to continue"
-        instructions(text)
-        text = f"Instructions: \n \n You will be shown a sequence of {subtext}images. \n \n Please keep your attention on the screen at all times. \n \n When you see the image, your job is just to look at it - it will automatically move forward to the next part. \n \n You will be asked to recount a personal memory involving this person. \n \n Press [1] to continue."
-        instructions(text)
-        recall_phase(shown_images, extra_images, 'memory')
-
-    instructions(f"We have now completed experiment {exp_num} out of 2. \n \n Press [1] to exit")
+    instructions(f"We have now completed the experiment. \n \n Press [1] to exit")
     exit_sensors = True
     win.close()
     core.quit()
