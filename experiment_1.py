@@ -17,9 +17,12 @@ from PIL import Image
 
 #TODO: play around with sensors more
 
-#TODO: adjust psychopy window on lab comp
+#TODO: adjust psychopy window on lab comp, add in needed vars here
+
+#TODO: pupil lab calibration docs
 
 # VARIABLES THAT CAN CHANGE - ADJUST THESE TO CHANGE THE EXPERIMENT
+on_lab_comp = False
 EMOTIBIT_BUFFER_INTERVAL = 0.02  # 50hz, fastest datastream is 25Hz, can probably do 0.04
 data_save_location = 'data'
 subject_id = 'test'
@@ -43,13 +46,22 @@ mon = monitors.Monitor('testMonitor')  # Replace 'testMonitor' with the name of 
 screen_width, screen_height = mon.getSizePix()
 print(mon.getSizePix())
 window_height = screen_height - 50  # Adjust this value to leave space for the taskbar/dock
-win = visual.Window(
-    size=(1350, 740), 
-    pos=(0, 25),  # This centers the window vertically. Adjust as needed.
-    fullscr=False,  # Fullscreen is set to False
-    screen=0,
-    color=[0, 0, 0]
-)
+if not on_lab_comp:
+    win = visual.Window(
+        size=(1350, 740), 
+        pos=(0, 25),  # This centers the window vertically. Adjust as needed.
+        fullscr=False,  # Fullscreen is set to False
+        screen=0,
+        color=[0, 0, 0]
+    )
+else:
+     win = visual.Window(
+        size=(1900, 1000), 
+        pos=(0, 30),  # This centers the window vertically. Adjust as needed.
+        fullscr=False,  # Fullscreen is set to False
+        screen=0,
+        color=[0, 0, 0]
+    )
 print(win.size)
 # win = visual.Window(fullscr=False, color=[0, 0, 0])
 noise_texture = np.random.normal(loc=0.5, scale=0.3, size=(win.size[1], win.size[0])) # loc is the mean, scale is the standard deviation
@@ -484,7 +496,8 @@ def learning_phase(images, practice = False):
     global curr_image
     global send_annotation_to_pupil
     global bookend_annotation
-
+    global on_lab_comp
+    
     for img_path in images:
         img = Image.open(img_path)
         img_width, img_height = img.size
@@ -493,8 +506,9 @@ def learning_phase(images, practice = False):
         win_width, win_height = win.size
 
         # Calculate the scale factor for both dimensions
-        scale_width = min((win_width * 0.2) / img_width, 1)
-        scale_height = min((win_height * 0.2) / img_height, 1)
+        scale = 0.4 if on_lab_comp else 0.2
+        scale_width = min((win_width * scale) / img_width, 1)
+        scale_height = min((win_height * scale) / img_height, 1)
 
         # Use the smaller scale factor to ensure the image does not exceed 80% of the screen
         scale_factor = min(scale_width, scale_height)
@@ -849,7 +863,6 @@ def experiment_gui(exp_num):
     instructions(text)
     recall_phase(shown_images, [], 'name')
     instructions('End of names phase. \n \n Press [1] to continue.')
-    game_relax_break()
 
     instructions(f"We have now completed the experiment. \n \n Press [1] to exit")
     exit_sensors = True
