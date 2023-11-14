@@ -497,7 +497,7 @@ def learning_phase(images, practice = False):
     global send_annotation_to_pupil
     global bookend_annotation
     global on_lab_comp
-    
+
     for img_path in images:
         img = Image.open(img_path)
         img_width, img_height = img.size
@@ -506,14 +506,14 @@ def learning_phase(images, practice = False):
         win_width, win_height = win.size
 
         # Calculate the scale factor for both dimensions
-        scale = 0.4 if on_lab_comp else 0.2
+        scale = 0.5 if on_lab_comp else 0.2
         scale_width = min((win_width * scale) / img_width, 1)
         scale_height = min((win_height * scale) / img_height, 1)
 
         # Use the smaller scale factor to ensure the image does not exceed 80% of the screen
         scale_factor = min(scale_width, scale_height)
-
-        image = visual.ImageStim(win, image=img_path, size=(img_width * scale_factor, img_height * scale_factor), pos =(0,win_height*0.05), units = 'pix')
+        pos_scale = 0.1 if on_lab_comp else 0.05
+        image = visual.ImageStim(win, image=img_path, size=(img_width * scale_factor, img_height * scale_factor), pos =(0,win_height*pos_scale), units = 'pix')
         text = "Do you recognize this face? \n \n (1: Yes, 2: No)"
 
         img_name = os.path.basename(img_path)  # Get the filename of the image
