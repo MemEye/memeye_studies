@@ -13,6 +13,7 @@ Steps:
 3. Run calibration on the participant using the Pupil Capture app
 4. Make sure the emotibit is connected to the computer and is streaming data, and it broadcasting data via OSC
 5. Within the experiment_1.py script, make sure the following variables are set properly:
+    - on_lab_comp is True if on the lab computer
     - EMOTIBIT_BUFFER_INTERVAL is set to the frequency we want to collect emotibit data at
     - data_save_location is set to the location we want to store all experiment data
     - subject_id is set to the current subjects ID/name

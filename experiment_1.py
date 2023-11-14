@@ -15,21 +15,17 @@ import json
 import numpy as np
 from PIL import Image
 
-#TODO: play around with sensors more
-
-#TODO: adjust psychopy window on lab comp, add in needed vars here
-
-#TODO: pupil lab calibration docs
+#TODO: verify checkpoint code works
 
 # VARIABLES THAT CAN CHANGE - ADJUST THESE TO CHANGE THE EXPERIMENT
-on_lab_comp = False
+on_lab_comp = True
 EMOTIBIT_BUFFER_INTERVAL = 0.02  # 50hz, fastest datastream is 25Hz, can probably do 0.04
 data_save_location = 'data'
 subject_id = 'test'
 experiment_num = 1
 date_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 subject_save_location = os.path.join('./', data_save_location, subject_id, date_time)
-emotibit_save_location = os.path.join('E://memeye_experiments', data_save_location, subject_id, date_time)
+emotibit_save_location = os.path.join('E://memeye_experiments', data_save_location, subject_id, date_time) if on_lab_comp else subject_save_location
 
 learning_time = 7  # Time each image is shown during learning phase (in seconds)
 recognition_time = 5
@@ -261,13 +257,8 @@ def setup_pupil_remote_connection(ip_address, port):
     pub_port = pupil_remote.recv_string()
     pub_socket = zmq.Socket(ctx, zmq.PUB)
     pub_socket.connect("tcp://127.0.0.1:{}".format(pub_port))
-    #SUB SOCKET
-    pupil_remote.send_string('SUB_PORT')
-    sub_port = pupil_remote.recv_string()
-    sub_socket = zmq.Socket(ctx, zmq.SUB)
-    sub_socket.connect("tcp://127.0.0.1:{}".format(sub_port))
 
-    return pupil_remote, pub_socket, sub_socket
+    return pupil_remote, pub_socket
 
 
 
@@ -364,7 +355,10 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
     global curr_image
     global bookend_annotation
     global send_subject_response
-    
+    global date_time
+    global subject_save_location
+    global emotibit_save_location
+
     emotibit_server, emotibit_dispatch = emotibit_server_thread(emotibit_ip, emotibit_port)
 
     pupil_ip, pupil_port = "127.0.0.1", 50020
@@ -373,7 +367,7 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
 
         # 1. Setup network connection
     check_capture_exists(pupil_ip, pupil_port)
-    pupil_remote, pub_socket, sub_socket = setup_pupil_remote_connection(pupil_ip, pupil_port)
+    pupil_remote, pub_socket = setup_pupil_remote_connection(pupil_ip, pupil_port)
 
     # 2. Setup local clock function
     local_clock = time.perf_counter
@@ -414,6 +408,9 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
             pupil_time_align_val = request_pupil_time(pupil_remote)
             print(pupil_time_align_val, 'time align')
             start_recording = False
+            date_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            subject_save_location = os.path.join('./', data_save_location, subject_id, date_time)
+            emotibit_save_location = os.path.join('E://memeye_experiments', data_save_location, subject_id, date_time) if on_lab_comp else subject_save_location
         
         if stop_recording:
             print('stopping recording session and saving')
@@ -481,7 +478,6 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
             # stop recording
             pupil_remote.send_string("r")
             pupil_remote.recv_string()
-            sub_socket.close()
             pupil_remote.close()
             pub_socket.close()
             exit_sensors = False
@@ -513,7 +509,7 @@ def learning_phase(images, practice = False):
         # Use the smaller scale factor to ensure the image does not exceed 80% of the screen
         scale_factor = min(scale_width, scale_height)
         pos_scale = 0.1 if on_lab_comp else 0.05
-        image = visual.ImageStim(win, image=img_path, size=(img_width * scale_factor, img_height * scale_factor), pos =(0,win_height*pos_scale), units = 'pix')
+        image = visual.ImageStim(win, image=img_path, size=(img_width * scale_factor, img_height * scale_factor), pos =(0,win_height*pos_scale), units = 'pix') 
         text = "Do you recognize this face? \n \n (1: Yes, 2: No)"
 
         img_name = os.path.basename(img_path)  # Get the filename of the image
@@ -777,6 +773,8 @@ def experiment_gui(exp_num):
     global stop_recording
     global exit_sensors
     global noise_stim
+    global start_recording
+    global stop_recording
 
     # Load images
     shown_images = [os.path.join(exp_1_shown_images_dir, img) for img in os.listdir(exp_1_shown_images_dir) if img.endswith('.jpg')]
@@ -832,6 +830,10 @@ def experiment_gui(exp_num):
     text = "End of practice sections. \n \n If you have questions, please ask the researcher. \n \n Press [1] to continue"
     instructions(text)
     
+    # checkpoint - need to test
+    stop_recording = True
+    start_recording = True
+
     text = "We will now begin the main experiment. \n \n Press [1] to continue."
     instructions(text)
 
@@ -845,6 +847,10 @@ def experiment_gui(exp_num):
     game_relax_break()
     instructions("End of game/relax break. \n \n Press [1] to continue to the recognition phase")
    
+    # checkpoint - need to test
+    stop_recording = True
+    start_recording = True
+
     # Phase 2: Recognition  
     text = f"We will now begin the recognition phase of the experiment. \n \n Press [1] to continue"
     instructions(text)
@@ -852,11 +858,15 @@ def experiment_gui(exp_num):
     instructions(text)
     recognition_phase(shown_images, extra_images, repeats = False, ratio_shown = 1)
     instructions('End of recognition phase. \n \n Press [1] to continue to the game/relax break.')
-
     game_relax_break()
+    instructions("End of game/relax break. \n \n Press [1] to continue to the names phase")
+
+    # checkpoint - need to test
+    stop_recording = True
+    start_recording = True
 
     # Phase 3: Names
-    instructions("End of game/relax break. \n \n Press [1] to continue to the names phase")
+    
     text = f"We will now begin the names phase of the experiment. \n \n Press [1] to continue"
     instructions(text)
     text = f"Instructions: \n \n You will be shown a sequence of images. \n \n Please keep your attention on the screen at all times. \n \n When you see the image, your job is just to look at it - it will automatically move forward to the next part. \n \n Press [1] to continue."
@@ -864,8 +874,8 @@ def experiment_gui(exp_num):
     recall_phase(shown_images, [], 'name')
     instructions('End of names phase. \n \n Press [1] to continue.')
 
-    instructions(f"We have now completed the experiment. \n \n Press [1] to exit")
     exit_sensors = True
+    instructions(f"We have now completed the experiment. \n \n Press [1] to exit")
     win.close()
     core.quit()
 
@@ -874,10 +884,10 @@ if __name__=='__main__':
     with open(image_info_path, 'r') as file:
         images_to_info = json.load(file)
 
-    # EMOTIBIT_PORT_NUMBER = 12345
-    # EMOTIBIT_IP_DEFAULT = "127.0.0.1"
-    # sensor_thread = Thread(target=collect_sensor_data, args = (EMOTIBIT_IP_DEFAULT, EMOTIBIT_PORT_NUMBER))
-    # sensor_thread.start()
+    EMOTIBIT_PORT_NUMBER = 12345
+    EMOTIBIT_IP_DEFAULT = "127.0.0.1"
+    sensor_thread = Thread(target=collect_sensor_data, args = (EMOTIBIT_IP_DEFAULT, EMOTIBIT_PORT_NUMBER))
+    sensor_thread.start()
     
     experiment_gui(experiment_num)
 
