@@ -798,7 +798,7 @@ def experiment_gui(exp_num):
     instructions(text)
     noise_stim.draw()
     win.flip()
-    core.wait(120)
+    core.wait(180)
 
     # practice phases are all here
     text = "We will now begin the practice section. \n \n Press [1] to continue."
