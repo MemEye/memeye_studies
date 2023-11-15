@@ -795,7 +795,7 @@ def experiment_gui(exp_num):
     start_recording = True
 
     # baseline
-    text = "Before we begin, please relax and try to keep still while looking at the screen. This part will be three minutes. \n \n Press [1] to continue." 
+    text = "Before we begin, please relax and try to keep still while looking at the screen. \n\n  This part will be three minutes. \n \n Press [1] to continue." 
     instructions(text)
     noise_stim.draw()
     win.flip()
