@@ -755,12 +755,12 @@ def game_relax_break():
     core.wait(60)
     bookend_annotation = True
     send_annotation_to_pupil = True
-    text_stim = visual.TextStim(win, text="1 Minute Relax Break", pos=(0,0), color=(1, 1, 1))
+    text_stim = visual.TextStim(win, text="1 Minute Relax Break: \n \n You can use this time to rest and you can also close your eyes for a while. \n \n When you are ready, press [1] to continue", pos=(0,0), color=(1, 1, 1))
     text_stim.draw()
     win.flip()
     current_annotation = f'relax break'
     send_annotation_to_pupil = True
-    core.wait(60)
+    event.waitKeys(keyList=['1', 'num_1'])
     bookend_annotation = True
     send_annotation_to_pupil = True
 
@@ -831,9 +831,9 @@ def experiment_gui(exp_num):
     text = "End of practice sections. \n \n If you have questions, please ask the researcher. \n \n Press [1] to continue"
     instructions(text)
     
-    # checkpoint - need to test
-    stop_recording = True
-    start_recording = True
+    # # checkpoint - need to test
+    # stop_recording = True
+    # start_recording = True
 
     text = "We will now begin the main experiment. \n \n Press [1] to continue."
     instructions(text)
@@ -848,9 +848,9 @@ def experiment_gui(exp_num):
     game_relax_break()
     instructions("End of game/relax break. \n \n Press [1] to continue to the recognition phase")
    
-    # checkpoint - need to test
-    stop_recording = True
-    start_recording = True
+    # # checkpoint - need to test
+    # stop_recording = True
+    # start_recording = True
 
     # Phase 2: Recognition  
     text = f"We will now begin the recognition phase of the experiment. \n \n Press [1] to continue"
@@ -862,9 +862,9 @@ def experiment_gui(exp_num):
     game_relax_break()
     instructions("End of game/relax break. \n \n Press [1] to continue to the names phase")
 
-    # checkpoint - need to test
-    stop_recording = True
-    start_recording = True
+    # # checkpoint - need to test
+    # stop_recording = True
+    # start_recording = True
 
     # Phase 3: Names
     
