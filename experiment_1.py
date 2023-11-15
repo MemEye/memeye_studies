@@ -794,7 +794,7 @@ def experiment_gui(exp_num):
     # Run experiment
     start_recording = True
 
-    text = "Before we begin, please look at the screen and relax for two minutes. \n \n Press [1] to continue."
+    text = "Before we begin, please look at the screen and relax for three minutes. \n \n Press [1] to continue."
     instructions(text)
     noise_stim.draw()
     win.flip()
