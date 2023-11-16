@@ -15,7 +15,7 @@ import json
 import numpy as np
 from PIL import Image
 
-#TODO: verify checkpoint code works
+#TODO: verify emotibit timestamps
 
 # VARIABLES THAT CAN CHANGE - ADJUST THESE TO CHANGE THE EXPERIMENT
 on_lab_comp = True
@@ -52,9 +52,9 @@ if not on_lab_comp:
     )
 else:
      win = visual.Window(
-        size=(1900, 1000), 
-        pos=(0, 30),  # This centers the window vertically. Adjust as needed.
-        fullscr=False,  # Fullscreen is set to False
+        # size=(1900, 1000), 
+        # pos=(0, 30),  # This centers the window vertically. Adjust as needed.
+        fullscr=True,  # Fullscreen is set to False
         screen=0,
         color=[0, 0, 0]
     )
