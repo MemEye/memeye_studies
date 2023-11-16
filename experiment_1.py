@@ -19,6 +19,12 @@ from PIL import Image
 
 #TODO: add april tags to psychopy across all screens
 
+#TODO: yes no high low
+
+#TODO: code for batches
+
+#TODO: change wording to say do you remember anything about this person, prioritize remembering the first
+
 
 # VARIABLES THAT CAN CHANGE - ADJUST THESE TO CHANGE THE EXPERIMENT
 on_lab_comp = True
@@ -30,10 +36,10 @@ date_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 subject_save_location = os.path.join('./', data_save_location, subject_id, date_time)
 emotibit_save_location = os.path.join('E://memeye_experiments', data_save_location, subject_id, date_time) if on_lab_comp else subject_save_location
 
-learning_time = 7  # Time each image is shown during learning phase (in seconds)
-recognition_time = 5
+learning_time = 10  # Time each image is shown during learning phase (in seconds)
+recognition_time = 7
 break_time = 3  # Time between images during learning phase (in seconds)
-recall_time = 10  # Max time for each image during remembering phase (in seconds)
+recall_time = 7  # Max time for each image during remembering phase (in seconds)
 recall_verbal_time = 7 #time to say name out loud
 
 exp_1_shown_images_dir = './experiment_1_images/people/shown/'
@@ -55,8 +61,6 @@ if not on_lab_comp:
     )
 else:
      win = visual.Window(
-        # size=(1900, 1000), 
-        # pos=(0, 30),  # This centers the window vertically. Adjust as needed.
         fullscr=True,  # Fullscreen is set to False
         screen=0,
         color=[0, 0, 0]
