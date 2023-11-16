@@ -17,6 +17,9 @@ from PIL import Image
 
 #TODO: verify emotibit timestamps
 
+#TODO: add april tags to psychopy across all screens
+
+
 # VARIABLES THAT CAN CHANGE - ADJUST THESE TO CHANGE THE EXPERIMENT
 on_lab_comp = True
 EMOTIBIT_BUFFER_INTERVAL = 0.02  # 50hz, fastest datastream is 25Hz, can probably do 0.04
@@ -132,8 +135,8 @@ def setup_dispatcher():
     dispatch.map("/EmotiBit/0/MAG:Z", filter_handler, 'MAG_Z')
     dispatch.map("/EmotiBit/0/THERM", filter_handler, 'THERM')
     dispatch.map("/EmotiBit/0/TEMP0", filter_handler, 'TEMP0')
-    dispatch.map("EmotiBit/0/TEMP1", filter_handler, 'TEMP0')
-    dispatch.map("/EmotiBit/0/EDL", filter_handler, 'TEMP0')
+    dispatch.map("EmotiBit/0/TEMP1", filter_handler, 'TEMP1')
+    dispatch.map("/EmotiBit/0/EDL", filter_handler, 'EDL')
     dispatch.map("/EmotiBit/0/ER", filter_handler, 'ER')
     dispatch.map("/EmotiBit/0/SA", filter_handler, 'SA')
     dispatch.map("/EmotiBit/0/SR", filter_handler, 'SR')
