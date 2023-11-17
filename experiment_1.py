@@ -17,8 +17,6 @@ from PIL import Image
 
 #TODO: verify emotibit timestamps
 
-#TODO: ask samantha about the breaks if we are doing batches, batched recordings
-
 #TODO: look into names that are too high 
 
 # VARIABLES THAT CAN CHANGE - ADJUST THESE TO CHANGE THE EXPERIMENT
@@ -83,6 +81,7 @@ subject_confidence = ''
 
 start_recording = False
 stop_recording = False
+batch_recording = False
 send_annotation_to_pupil = False
 exit_sensors = False
 bookend_annotation = False
@@ -357,6 +356,7 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
     global pupil_time_align_val
     global start_recording
     global stop_recording
+    global batch_recording
     global send_annotation_to_pupil
     global exit_sensors
     global curr_image
@@ -408,6 +408,9 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
             print('starting recording session')
 
             emotibit_collect_data = True
+            date_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            subject_save_location = os.path.join('./', data_save_location, subject_id, date_time)
+            emotibit_save_location = os.path.join('E://memeye_experiments', data_save_location, subject_id, date_time) if on_lab_comp else subject_save_location
             full_path = os.path.join(subject_save_location, f'experiment_{experiment_num}')
             if not os.path.exists(full_path):
                 os.makedirs(full_path)
@@ -417,10 +420,40 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
             pupil_time_align_val = request_pupil_time(pupil_remote)
             print(pupil_time_align_val, 'time align')
             start_recording = False
+                    
+        if batch_recording:
+            print('batching recording session and saving')
+            if current_annotation != '':
+                local_time = local_clock()
+                minimal_trigger = new_trigger(current_annotation, duration, local_time + stable_offset_mean)
+                send_trigger(pub_socket, minimal_trigger)
+
+                # Add custom keys to your annotation
+                minimal_trigger["custom_key"] = "custom value"
+                send_trigger(pub_socket, minimal_trigger)
+                current_annotation = ''
+            
+            pupil_time_align_val = request_pupil_time(pupil_remote)
+            print(pupil_time_align_val, 'time align')
+            pupil_remote.send_string("r")
+            pupil_remote.recv_string()
+            emotibit_save_data(emotibit_data_log)
+
+            print('starting recording session')
+            
             date_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
             subject_save_location = os.path.join('./', data_save_location, subject_id, date_time)
             emotibit_save_location = os.path.join('E://memeye_experiments', data_save_location, subject_id, date_time) if on_lab_comp else subject_save_location
-        
+            full_path = os.path.join(subject_save_location, f'experiment_{experiment_num}')
+            if not os.path.exists(full_path):
+                os.makedirs(full_path)
+            message = f'R {full_path}'
+            pupil_remote.send_string(message)
+            pupil_remote.recv_string()
+            pupil_time_align_val = request_pupil_time(pupil_remote)
+            print(pupil_time_align_val, 'time align')
+            batch_recording = False
+
         if stop_recording:
             print('stopping recording session and saving')
             if current_annotation != '':
@@ -637,7 +670,6 @@ def recognition_phase(shown_images, extra_images, repeats = False, ratio_shown =
         bookend_annotation = True
         send_annotation_to_pupil = True
 
-        # Break between images (only during learning phase)
         noise_stim.draw()
         win.flip()
         core.wait(break_time)
@@ -740,14 +772,6 @@ def recall_phase(images_to_show, extra_images, recall_type, practice = False):
         send_subject_response = True
         bookend_annotation = True
         send_annotation_to_pupil = True
-
-        # Break between images (only during learning phase)
-        noise_stim.draw()
-        win.flip()
-        core.wait(break_time)
-        keys = event.getKeys(keyList=['escape'])
-        if 'escape' in keys:
-            core.quit()
         
         current_annotation = f'recall {recall_type} verbal' if not practice else f'practice recall {recall_type} verbal'
         curr_image = img_name
@@ -778,7 +802,7 @@ def instructions(text):
     win.flip()
     event.waitKeys(keyList=['1', 'num_1'])
 
-def game_relax_break():
+def game_break():
     global win
     global current_annotation
     global send_annotation_to_pupil
@@ -791,14 +815,30 @@ def game_relax_break():
     core.wait(60)
     bookend_annotation = True
     send_annotation_to_pupil = True
-    text_stim = visual.TextStim(win, text="1 Minute Relax Break: \n \n You can use this time to rest and you can also close your eyes for a while. \n \n When you are ready, press [1] to continue", pos=(0,0), color=(1, 1, 1))
+    #TODO: play sound
+    text_stim = visual.TextStim(win, text="When you are ready, press [1] to continue", pos=(0,0), color=(1, 1, 1))
     text_stim.draw()
     win.flip()
-    current_annotation = f'relax break'
-    send_annotation_to_pupil = True
     event.waitKeys(keyList=['1', 'num_1'])
+
+def relax_break():
+    global win
+    global current_annotation
+    global send_annotation_to_pupil
+    global bookend_annotation
+    text_stim = visual.TextStim(win, text="1 Minute Relax Break: \n \n You can use this time to rest and you can also close your eyes for a while.", pos=(0,0), color=(1, 1, 1))
+    text_stim.draw()
+    win.flip()
+    current_annotation = 'relax break'
+    send_annotation_to_pupil = True
+    core.wait(60)
     bookend_annotation = True
     send_annotation_to_pupil = True
+    #TODO: play sound
+    text_stim = visual.TextStim(win, text="When you are ready, press [1] to continue", pos=(0,0), color=(1, 1, 1))
+    text_stim.draw()
+    win.flip()
+    event.waitKeys(keyList=['1', 'num_1'])
 
 
 def experiment_gui(exp_num):
@@ -811,6 +851,7 @@ def experiment_gui(exp_num):
     global noise_stim
     global start_recording
     global stop_recording
+    global batch_recording
 
     # Load images
     shown_images = [os.path.join(exp_1_shown_images_dir, img) for img in os.listdir(exp_1_shown_images_dir) if img.endswith('.jpg')]
@@ -821,21 +862,27 @@ def experiment_gui(exp_num):
     random.shuffle(extra_images)
 
     #TESTING VARS
-    # shown_images = shown_images[:2]
-    # extra_images = []
+    shown_images_batches = [shown_images[:1], shown_images[1:2], shown_images[2:3]]
+    extra_images_batches = [extra_images[:1], extra_images[1:2], extra_images[2:3]]
 
-    shown_images = random.sample(shown_images, 32)
-    extra_images = random.sample(extra_images, 12)
+    # shown_images = random.sample(shown_images, 33)
+    # extra_images = random.sample(extra_images, 12)
+
+    # random.shuffle(shown_images)
+    # random.shuffle(extra_images)
+
+    # shown_images_batches = [shown_images[:11], shown_images[11:22], shown_images[22:]]
+    # extra_images_batches = [extra_images[:4], extra_images[4:8], extra_images[8:]]
 
     # Run experiment
     start_recording = True
 
     # baseline
-    text = "Before we begin, please relax and try to keep still while looking at the screen. \n\n  This part will be three minutes. \n \n Press [1] to continue." 
-    instructions(text)
-    noise_stim.draw()
-    win.flip()
-    core.wait(180)
+    # text = "Before we begin, please relax and try to keep still while looking at the screen. \n\n  This part will be three minutes. \n \n Press [1] to continue." 
+    # instructions(text)
+    # noise_stim.draw()
+    # win.flip()
+    # core.wait(180)
 
     # practice phases are all here
     text = "We will now begin the practice section. \n \n Press [1] to continue."
@@ -867,49 +914,52 @@ def experiment_gui(exp_num):
     text = "End of practice sections. \n \n If you have questions, please ask the researcher. \n \n Press [1] to continue"
     instructions(text)
     
-    # # checkpoint - need to test
-    # stop_recording = True
-    # start_recording = True
+    # TODO: Practice batch recording
+    batch_recording = True
 
     text = "We will now begin the main experiment. \n \n Press [1] to continue."
     instructions(text)
 
-    # Phase 1: Learning
-    text = f"We will now begin the learning phase of the experiment. \n \n Press [1] to continue"
-    instructions(text)
-    text = "Instructions: \n \n You will be shown a sequence of images with the person's name and related facts. \n \n Please keep your attention on the screen and remember as many details as possible for each person. \n \n You will be tested on how much you remember after this. \n \n It will automatically move forward to the next part. \n \n Press [1] to continue."
-    instructions(text)
-    learning_phase(shown_images)
-    instructions('End of learning phase. \n \n Press [1] to continue to the game/relax break.')
-    game_relax_break()
-    instructions("End of game/relax break. \n \n Press [1] to continue to the recognition phase")
-   
-    # # checkpoint - need to test
-    # stop_recording = True
-    # start_recording = True
+    for i in range(3):
 
-    # Phase 2: Recognition  
-    text = f"We will now begin the recognition phase of the experiment. \n \n Press [1] to continue"
-    instructions(text)
-    text = f"Instructions: \n \n You will be shown a sequence of images. \n \n When you see the image, your job is just to look at it - it will automatically move forward to the next part. \n \n Press [1] to continue."
-    instructions(text)
-    recognition_phase(shown_images, extra_images, repeats = False, ratio_shown = 1)
-    instructions('End of recognition phase. \n \n Press [1] to continue to the game/relax break.')
-    game_relax_break()
-    instructions("End of game/relax break. \n \n Press [1] to continue to the names phase")
+        shown_images = shown_images_batches[i]
+        extra_images = extra_images_batches[i]
 
-    # # checkpoint - need to test
-    # stop_recording = True
-    # start_recording = True
+        # Phase 1: Learning
+        text = f"We will now begin the learning phase of the experiment (Batch {i+1} out of 3). \n \n Press [1] to continue"
+        instructions(text)
+        text = "Instructions: \n \n You will be shown a sequence of images with the person's name and related facts. \n \n Please keep your attention on the screen and remember as many details as possible for each person. \n \n You will be tested on how much you remember after this. \n \n It will automatically move forward to the next part. \n \n Press [1] to continue."
+        instructions(text)
+        learning_phase(shown_images)
+        instructions('End of learning phase. \n \n Press [1] to continue to the game break.')
+        game_break()
 
-    # Phase 3: Names
-    
-    text = f"We will now begin the names phase of the experiment. \n \n Press [1] to continue"
-    instructions(text)
-    text = f"Instructions: \n \n You will be shown a sequence of images. \n \n Please keep your attention on the screen at all times. \n \n When you see the image, your job is just to look at it - it will automatically move forward to the next part. \n \n Press [1] to continue."
-    instructions(text)
-    recall_phase(shown_images, [], 'name')
-    instructions('End of names phase. \n \n Press [1] to continue.')
+        # Phase 2: Recognition  
+        text = f"We will now begin the recognition phase of the experiment (Batch {i+1} out of 3). \n \n Press [1] to continue"
+        instructions(text)
+        text = f"Instructions: \n \n You will be shown a sequence of images. \n \n When you see the image, your job is just to look at it - it will automatically move forward to the next part. \n \n Press [1] to continue."
+        instructions(text)
+        recognition_phase(shown_images, extra_images, repeats = False, ratio_shown = 1)
+        instructions('End of recognition phase. \n \n Press [1] to continue to the game break.')
+        game_break()
+
+        # Phase 3: Names
+        text = f"We will now begin the names phase of the experiment (Batch {i+1} out of 3). \n \n Press [1] to continue"
+        instructions(text)
+        text = f"Instructions: \n \n You will be shown a sequence of images. \n \n Please keep your attention on the screen at all times. \n \n When you see the image, your job is just to look at it - it will automatically move forward to the next part. \n \n Press [1] to continue."
+        instructions(text)
+        recall_phase(shown_images, [], 'name')
+        instructions('End of names phase. \n \n Press [1] to continue.')
+
+        #TODO: batch recording
+
+        if i < 2:
+            instructions('End of batch. \n \n Press [1] to continue to game/relax break.')
+            batch_recording = True
+            game_break()
+            relax_break()
+        else:
+            instructions('End of batch. \n \n Press [1] to continue.')
 
     exit_sensors = True
     instructions(f"We have now completed the experiment. \n \n Press [1] to exit")
