@@ -17,8 +17,6 @@ from PIL import Image
 
 #TODO: verify emotibit timestamps
 
-#TODO: double check annotation logic
-
 # VARIABLES THAT CAN CHANGE - ADJUST THESE TO CHANGE THE EXPERIMENT
 on_lab_comp = True
 EMOTIBIT_BUFFER_INTERVAL = 0.02  # 50hz, fastest datastream is 25Hz, can probably do 0.04
@@ -190,10 +188,12 @@ def filter_handler(unused_addr, *args):
         group_data.append((['IMAGE'], curr_image))
         group_data.append((['SUBJECT_RESPONSE'], subject_response))
         group_data.append((['SUBJECT_CONFIDENCE'], subject_confidence))
-        subject_response_in_emotibit = True
         if subject_response != '' and not send_subject_response:
             subject_response = ''
             subject_confidence = ''
+            subject_response_in_emotibit = False
+        elif subject_response != '' and send_subject_response:
+            subject_response_in_emotibit = True
         emotibit_data_log.append(group_data)
         emotibit_last_collect_time = current_time
         emotibit_latest_osc_data = f"data: {group_data}"
@@ -490,6 +490,7 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
             if subject_response_in_emotibit:
                 subject_response = ''
                 subject_confidence = ''
+                subject_response_in_emotibit = False
             
         if send_annotation_to_pupil:
             local_time = local_clock()
