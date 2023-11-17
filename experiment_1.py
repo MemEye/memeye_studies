@@ -892,27 +892,27 @@ def experiment_gui(exp_num):
     random.shuffle(extra_images)
 
     #TESTING VARS
-    shown_images_batches = [shown_images[:1], shown_images[1:2], shown_images[2:3]]
-    extra_images_batches = [extra_images[:1], extra_images[1:2], extra_images[2:3]]
+    # shown_images_batches = [shown_images[:1], shown_images[1:2], shown_images[2:3]]
+    # extra_images_batches = [extra_images[:1], extra_images[1:2], extra_images[2:3]]
 
-    # shown_images = random.sample(shown_images, 33)
-    # extra_images = random.sample(extra_images, 12)
+    shown_images = random.sample(shown_images, 33)
+    extra_images = random.sample(extra_images, 12)
 
-    # random.shuffle(shown_images)
-    # random.shuffle(extra_images)
+    random.shuffle(shown_images)
+    random.shuffle(extra_images)
 
-    # shown_images_batches = [shown_images[:11], shown_images[11:22], shown_images[22:]]
-    # extra_images_batches = [extra_images[:4], extra_images[4:8], extra_images[8:]]
+    shown_images_batches = [shown_images[:11], shown_images[11:22], shown_images[22:]]
+    extra_images_batches = [extra_images[:4], extra_images[4:8], extra_images[8:]]
 
     # Run experiment
     start_recording = True
 
     # baseline
-    # text = "Before we begin, please relax and try to keep still while looking at the screen. \n\n  This part will be three minutes. \n \n Press [1] to continue." 
-    # instructions(text)
-    # noise_stim.draw()
-    # win.flip()
-    # core.wait(180)
+    text = "Before we begin, please relax and try to keep still while looking at the screen. \n\n  This part will be three minutes. \n \n Press [1] to continue." 
+    instructions(text)
+    noise_stim.draw()
+    win.flip()
+    core.wait(180)
 
     # practice phases are all here
     text = "We will now begin the practice section. \n \n Press [1] to continue."
@@ -947,10 +947,11 @@ def experiment_gui(exp_num):
     # Practice batch recording
     batch_recording = True
 
-    text = "We will now begin the main experiment. \n \n Press [1] to continue."
+    text = "We will now begin the main experiment. \n \n Press [1] to continue to the game break."
     instructions(text)
+    game_break()
 
-    for i in range(1):
+    for i in range(3):
 
         shown_images = shown_images_batches[i]
         extra_images = extra_images_batches[i]
@@ -962,7 +963,7 @@ def experiment_gui(exp_num):
         instructions(text)
         learning_phase(shown_images)
         instructions('End of learning phase. \n \n Press [1] to continue to the game break.')
-        # game_break()
+        game_break()
 
         # Phase 2: Recognition  
         text = f"We will now begin the recognition phase of the experiment (Batch {i+1} out of 3). \n \n Press [1] to continue"
@@ -971,7 +972,7 @@ def experiment_gui(exp_num):
         instructions(text)
         recognition_phase(shown_images, extra_images, repeats = False, ratio_shown = 1)
         instructions('End of recognition phase. \n \n Press [1] to continue to the game break.')
-        # game_break()
+        game_break()
 
         # Phase 3: Names
         text = f"We will now begin the names phase of the experiment (Batch {i+1} out of 3). \n \n Press [1] to continue"
@@ -985,8 +986,8 @@ def experiment_gui(exp_num):
         if i < 2:
             instructions(f'End of batch {i+1} out of 3. \n \n Press [1] to continue to game/relax break.')
             batch_recording = True
-            # game_break()
-            # relax_break()
+            game_break()
+            relax_break()
         else:
             instructions(f'End of batch {i+1} out of 3. \n \n Press [1] to continue.')
 
