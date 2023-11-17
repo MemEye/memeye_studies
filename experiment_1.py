@@ -17,6 +17,8 @@ from PIL import Image
 
 #TODO: verify emotibit timestamps
 
+#TODO: double check annotation logic
+
 # VARIABLES THAT CAN CHANGE - ADJUST THESE TO CHANGE THE EXPERIMENT
 on_lab_comp = True
 EMOTIBIT_BUFFER_INTERVAL = 0.02  # 50hz, fastest datastream is 25Hz, can probably do 0.04
@@ -951,12 +953,12 @@ def experiment_gui(exp_num):
 
         # batch recording
         if i < 2:
-            instructions('End of batch. \n \n Press [1] to continue to game/relax break.')
+            instructions(f'End of batch {i+1} out of 3. \n \n Press [1] to continue to game/relax break.')
             batch_recording = True
             game_break()
             relax_break()
         else:
-            instructions('End of batch. \n \n Press [1] to continue.')
+            instructions(f'End of batch {i+1} out of 3. \n \n Press [1] to continue.')
 
     exit_sensors = True
     instructions(f"We have now completed the experiment. \n \n Press [1] to exit")
