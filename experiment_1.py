@@ -188,11 +188,11 @@ def filter_handler(unused_addr, *args):
         group_data.append((['IMAGE'], curr_image))
         group_data.append((['SUBJECT_RESPONSE'], subject_response))
         group_data.append((['SUBJECT_CONFIDENCE'], subject_confidence))
-        if subject_response != '' and not send_subject_response:
+        if (subject_response != '' or subject_confidence != '') and not send_subject_response:
             subject_response = ''
             subject_confidence = ''
             subject_response_in_emotibit = False
-        elif subject_response != '' and send_subject_response:
+        elif (subject_response != '' or subject_confidence != '') and send_subject_response:
             subject_response_in_emotibit = True
         emotibit_data_log.append(group_data)
         emotibit_last_collect_time = current_time
@@ -679,10 +679,10 @@ def recognition_phase(shown_images, extra_images, repeats = False, ratio_shown =
         if keys:
             key, reaction_time = keys[0]
             if key == '1' or key == 'num_1':
-                subject_response = 'High'
+                subject_confidence = 'High'
                 send_subject_response = True
             elif key == '2'or key == 'num_2':
-                subject_response = 'Low'
+                subject_confidence = 'Low'
                 send_subject_response = True
             if key == 'escape':
                 core.quit()
@@ -717,7 +717,7 @@ def recall_phase(images_to_show, extra_images, recall_type, practice = False):
     random.shuffle(images)
 
     if recall_type == 'name':
-        text = "Use the following 10 seconds to try to recall the person's first name (or anything else about them) in your mind. \n \n (Do not say out loud)"
+        text = "Use the following 7 seconds to try to recall the person's first name (or anything else about them) in your mind. \n \n (Do not say out loud)"
         
     text_stim = visual.TextStim(win, text=text, pos=(0,0), color=(1, 1, 1))
     text_stim.draw()
@@ -791,10 +791,10 @@ def recall_phase(images_to_show, extra_images, recall_type, practice = False):
         if keys:
             key, reaction_time = keys[0]
             if key == '1' or key == 'num_1':
-                subject_response = 'High'
+                subject_confidence = 'High'
                 send_subject_response = True
             elif key == '2'or key == 'num_2':
-                subject_response = 'Low'
+                subject_confidence = 'Low'
                 send_subject_response = True
             if key == 'escape':
                 core.quit()
