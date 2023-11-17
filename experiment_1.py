@@ -77,6 +77,7 @@ emotibit_data_log = []
 pupil_time_align_val = None
 curr_image = ''
 subject_response = ''
+subject_confidence = ''
 
 start_recording = False
 stop_recording = False
@@ -85,6 +86,7 @@ send_annotation_to_pupil = False
 exit_sensors = False
 bookend_annotation = False
 send_subject_response = False
+subject_response_in_emotibit = False
 
 emotibit_sensor_buffers = {
     "/EmotiBit/0/PPG:RED": [],
@@ -160,6 +162,9 @@ def filter_handler(unused_addr, *args):
     global pupil_time_align_val
     global curr_image
     global subject_response
+    global subject_confidence
+    global send_subject_response
+    global subject_response_in_emotibit
 
     current_time = time.time()
 
@@ -184,8 +189,11 @@ def filter_handler(unused_addr, *args):
             pupil_time_align_val = None
         group_data.append((['IMAGE'], curr_image))
         group_data.append((['SUBJECT_RESPONSE'], subject_response))
-        if subject_response != '':
+        group_data.append((['SUBJECT_CONFIDENCE'], subject_confidence))
+        subject_response_in_emotibit = True
+        if subject_response != '' and not send_subject_response:
             subject_response = ''
+            subject_confidence = ''
         emotibit_data_log.append(group_data)
         emotibit_last_collect_time = current_time
         emotibit_latest_osc_data = f"data: {group_data}"
@@ -357,7 +365,9 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
     global curr_image
     global bookend_annotation
     global send_subject_response
+    global subject_response_in_emotibit
     global subject_response
+    global subject_confidence
     global date_time
     global subject_save_location
     global emotibit_save_location
@@ -474,8 +484,12 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
             pupil_time_align_val = request_pupil_time(pupil_remote)
             print(pupil_time_align_val, 'time align')
             minimal_trigger = new_trigger(subject_response, duration, local_time + stable_offset_mean)
+            minimal_trigger = new_trigger(subject_confidence, duration, local_time + stable_offset_mean)
             send_trigger(pub_socket, minimal_trigger)
             send_subject_response = False
+            if subject_response_in_emotibit:
+                subject_response = ''
+                subject_confidence = ''
             
         if send_annotation_to_pupil:
             local_time = local_clock()
@@ -580,6 +594,7 @@ def recognition_phase(shown_images, extra_images, repeats = False, ratio_shown =
     global send_annotation_to_pupil
     global bookend_annotation
     global subject_response
+    global subject_confidence
     global send_subject_response
 
     if ratio_shown != 1:
@@ -643,14 +658,11 @@ def recognition_phase(shown_images, extra_images, repeats = False, ratio_shown =
             if key == '1' or key == 'num_1':
                 print('Yes')
                 subject_response = 'Y'
-                send_subject_response = True
             elif key == '2'or key == 'num_2':
                 print('No')
                 subject_response = 'N'
-                send_subject_response = True
             if key == 'escape':
                 core.quit()
-        send_subject_response = True
 
         text_stim = visual.TextStim(win, text="How confident are you in your previous response? \n \n (1: High Confidence, 2: Low Confidence)", 
                                     pos=(0,0), color=(1, 1, 1))
@@ -661,12 +673,12 @@ def recognition_phase(shown_images, extra_images, repeats = False, ratio_shown =
             key, reaction_time = keys[0]
             if key == '1' or key == 'num_1':
                 subject_response = 'H'
-                send_subject_response = True
             elif key == '2'or key == 'num_2':
                 subject_response = 'L'
-                send_subject_response = True
             if key == 'escape':
                 core.quit()
+        
+        send_subject_response = True
         
         bookend_annotation = True
         send_annotation_to_pupil = True
@@ -690,6 +702,7 @@ def recall_phase(images_to_show, extra_images, recall_type, practice = False):
     global send_annotation_to_pupil
     global bookend_annotation
     global subject_response
+    global subject_confidence
     global send_subject_response
     global experiment_num
 
@@ -756,13 +769,10 @@ def recall_phase(images_to_show, extra_images, recall_type, practice = False):
             key, reaction_time = keys[0]
             if key == '1' or key == 'num_1':
                 subject_response = 'Y'
-                send_subject_response = True
             elif key == '2'or key == 'num_2':
                 subject_response = 'N'
-                send_subject_response = True
             if key == 'escape':
                 core.quit()
-        send_subject_response = True
         
         text_stim = visual.TextStim(win, text="How confident are you in your previous response? \n \n (1: High Confidence, 2: Low Confidence)", 
                                     pos=(0,0), color=(1, 1, 1))
@@ -773,12 +783,12 @@ def recall_phase(images_to_show, extra_images, recall_type, practice = False):
             key, reaction_time = keys[0]
             if key == '1' or key == 'num_1':
                 subject_response = 'H'
-                send_subject_response = True
             elif key == '2'or key == 'num_2':
                 subject_response = 'L'
-                send_subject_response = True
             if key == 'escape':
                 core.quit()
+
+        send_subject_response = True
 
         bookend_annotation = True
         send_annotation_to_pupil = True
@@ -930,7 +940,7 @@ def experiment_gui(exp_num):
     text = "We will now begin the main experiment. \n \n Press [1] to continue."
     instructions(text)
 
-    for i in range(3):
+    for i in range(1):
 
         shown_images = shown_images_batches[i]
         extra_images = extra_images_batches[i]
@@ -995,124 +1005,4 @@ if __name__=='__main__':
 #   }
 
 
-<patchboard>
-	<settings>
-		<input>
-			<type>EmotiBit</type>
-		</input>
-		<output>
-			<type>OSC</type>
-			<ipAddress>127.0.0.1</ipAddress>
-			<port>12345</port>
-		</output>
-	</settings>
-	<patchcords>
-		<patch>
-			<input>PR</input>
-			<output>/EmotiBit/0/PPG:RED</output>
-		</patch>		<patch>
-			<input>PI</input>
-			<output>/EmotiBit/0/PPG:IR</output>
-		</patch>	
-		<patch>
-			<input>PG</input>
-			<output>/EmotiBit/0/PPG:GRN</output>
-		</patch>
-		<patch>
-			<input>EA</input>
-			<output>/EmotiBit/0/EDA</output>
-		</patch>
-		<patch>
-			<input>H0</input>
-			<output>/EmotiBit/0/HUMIDITY</output>
-		</patch>
-		<patch>
-			<input>AX</input>
-			<output>/EmotiBit/0/ACC:X</output>
-		</patch>
-		<patch>
-			<input>AY</input>
-			<output>/EmotiBit/0/ACC:Y</output>
-		</patch>
-		<patch>
-			<input>AZ</input>
-			<output>/EmotiBit/0/ACC:Z</output>
-		</patch>
-		<patch>
-			<input>GX</input>
-			<output>/EmotiBit/0/GYRO:X</output>
-		</patch>
-		<patch>
-			<input>GY</input>
-			<output>/EmotiBit/0/GYRO:Y</output>
-		</patch>
-		<patch>
-			<input>GZ</input>
-			<output>/EmotiBit/0/GYRO:Z</output>
-		</patch>
-		<patch>
-			<input>MX</input>
-			<output>/EmotiBit/0/MAG:X</output>
-		</patch>
-		<patch>
-			<input>MY</input>
-			<output>/EmotiBit/0/MAG:Y</output>
-		</patch>
-		<patch>
-			<input>MZ</input>
-			<output>/EmotiBit/0/MAG:Z</output>
-		</patch>
-		<patch>
-			<input>TH</input>
-			<output>/EmotiBit/0/THERM</output>
-		</patch>
-		<patch>
-			<input>T0</input>
-			<output>/EmotiBit/0/TEMP0</output>
-		</patch>
-		<patch>
-			<input>T1</input>
-			<output>/EmotiBit/0/TEMP1</output>
-		</patch>
 
-		<patch>
-			<input>EL</input>
-			<output>/EmotiBit/0/EDL</output>
-		</patch>
-
-		<patch>
-			<input>ER</input>
-			<output>/EmotiBit/0/ER</output>
-		</patch>
-
-		<patch>
-			<input>SA</input>
-			<output>/EmotiBit/0/SA</output>
-		</patch>
-
-		<patch>
-			<input>SR</input>
-			<output>/EmotiBit/0/SR</output>
-		</patch>
-
-		<patch>
-			<input>SF</input>
-			<output>/EmotiBit/0/SF</output>
-		</patch>
-
-		<patch>
-			<input>HR</input>
-			<output>/EmotiBit/0/HR</output>
-		</patch>
-
-		<patch>
-			<input>BI</input>
-			<output>/EmotiBit/0/BI</output>
-		</patch>
-
-		<patch>
-			<input>H0</input>
-			<output>/EmotiBit/0/HUMID</output>
-		</patch>
-	</patchcords>
-</patchboard>	
