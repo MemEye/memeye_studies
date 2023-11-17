@@ -483,9 +483,13 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
             local_time = local_clock()
             pupil_time_align_val = request_pupil_time(pupil_remote)
             print(pupil_time_align_val, 'time align')
-            minimal_trigger = new_trigger(subject_response, duration, local_time + stable_offset_mean)
-            minimal_trigger = new_trigger(subject_confidence, duration, local_time + stable_offset_mean)
-            send_trigger(pub_socket, minimal_trigger)
+            print(subject_response, subject_confidence)
+            if subject_response != '':
+                minimal_trigger = new_trigger(subject_response, duration, local_time + stable_offset_mean)
+                send_trigger(pub_socket, minimal_trigger)
+            if subject_confidence != '':
+                minimal_trigger = new_trigger(subject_confidence, duration, local_time + stable_offset_mean)
+                send_trigger(pub_socket, minimal_trigger)
             send_subject_response = False
             if subject_response_in_emotibit:
                 subject_response = ''
@@ -658,10 +662,12 @@ def recognition_phase(shown_images, extra_images, repeats = False, ratio_shown =
             print(keys)
             if key == '1' or key == 'num_1':
                 print('Yes')
-                subject_response = 'Y'
+                subject_response = 'Yes'
+                send_subject_response = True
             elif key == '2'or key == 'num_2':
                 print('No')
-                subject_response = 'N'
+                subject_response = 'N0'
+                send_subject_response = True
             if key == 'escape':
                 core.quit()
 
@@ -673,13 +679,13 @@ def recognition_phase(shown_images, extra_images, repeats = False, ratio_shown =
         if keys:
             key, reaction_time = keys[0]
             if key == '1' or key == 'num_1':
-                subject_response = 'H'
+                subject_response = 'High'
+                send_subject_response = True
             elif key == '2'or key == 'num_2':
-                subject_response = 'L'
+                subject_response = 'Low'
+                send_subject_response = True
             if key == 'escape':
                 core.quit()
-        
-        send_subject_response = True
         
         bookend_annotation = True
         send_annotation_to_pupil = True
@@ -769,9 +775,11 @@ def recall_phase(images_to_show, extra_images, recall_type, practice = False):
         if keys:
             key, reaction_time = keys[0]
             if key == '1' or key == 'num_1':
-                subject_response = 'Y'
+                subject_response = 'Yes'
+                send_subject_response = True
             elif key == '2'or key == 'num_2':
-                subject_response = 'N'
+                subject_response = 'No'
+                send_subject_response = True
             if key == 'escape':
                 core.quit()
         
@@ -783,13 +791,14 @@ def recall_phase(images_to_show, extra_images, recall_type, practice = False):
         if keys:
             key, reaction_time = keys[0]
             if key == '1' or key == 'num_1':
-                subject_response = 'H'
+                subject_response = 'High'
+                send_subject_response = True
             elif key == '2'or key == 'num_2':
-                subject_response = 'L'
+                subject_response = 'Low'
+                send_subject_response = True
             if key == 'escape':
                 core.quit()
 
-        send_subject_response = True
 
         bookend_annotation = True
         send_annotation_to_pupil = True
