@@ -29,10 +29,10 @@
 
     "CFD-AM-201-076-N.jpg": {"Name": "Liam Park", "Fact": "I am the youngest child."}, 
     "CFD-AM-202-079-N.jpg": {"Name": "Noah Yang", "Fact": "I enjoy video games."}, 
-    "CFD-AM-203-086-N.jpg": {"Name": "William Zhao", "Fact": "I have been to all 50 states."}, 
+    "CFD-AM-203-086-N.jpg": {"Name": "William Zhao", "Fact": "I have visited all 50 states."}, 
     "CFD-AM-204-122-N.jpg": {"Name": "James Zhou", "Fact": "I enjoy cooking."}, 
     "CFD-AM-205-153-N.jpg": {"Name": "Oliver Chang", "Fact": "I enjoy gardening."}, 
-    "CFD-AM-206-086-N.jpg": {"Name": "Benjamin Huang", "Fact": "I hope to get into stand-up comedy."}, 
+    "CFD-AM-206-086-N.jpg": {"Name": "Benjamin Huang", "Fact": "I enjoy stand-up comedy."}, 
 
     "CFD-BM-001-014-N.jpg": {"Name": "Elijah Clark", "Fact": "I love to read."}, 
     "CFD-BM-002-013-N.jpg": {"Name": "Lucas Martin", "Fact": "I enjoy watching anime."}, 
@@ -55,6 +55,6 @@
     "CFD-WM-006-002-N.jpg": {"Name": "Joseph Harris", "Fact": "I like reading about art history."}, 
     "CFD-WM-009-002-N.jpg": {"Name": "Carter Thomas", "Fact": "My favorite sport is baseball."},
 
-    "CFD-MM-307-002-N.jpg": {"Name": "Chris Anderson", "Fact": "I enjoy chess."},
+    "CFD-MM-307-002-N.jpg": {"Name": "Chris Anderson", "Fact": "I enjoy chess.", "Audio": "example.wav"},
     "CFD-MF-300-002-N.jpg": {"Name": "Summer Ryan", "Fact": "I like to draw."}
 }

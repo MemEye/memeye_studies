@@ -17,14 +17,9 @@ from PIL import Image
 
 #TODO: verify emotibit timestamps
 
-#TODO: add april tags to psychopy across all screens
+#TODO: ask samantha about the breaks if we are doing batches, batched recordings
 
-#TODO: yes no high low
-
-#TODO: code for batches
-
-#TODO: change wording to say do you remember anything about this person, prioritize remembering the first
-
+#TODO: look into names that are too high 
 
 # VARIABLES THAT CAN CHANGE - ADJUST THESE TO CHANGE THE EXPERIMENT
 on_lab_comp = True
@@ -84,6 +79,7 @@ emotibit_data_log = []
 pupil_time_align_val = None
 curr_image = ''
 subject_response = ''
+subject_confidence = ''
 
 start_recording = False
 stop_recording = False
@@ -166,6 +162,7 @@ def filter_handler(unused_addr, *args):
     global pupil_time_align_val
     global curr_image
     global subject_response
+    global subject_confidence
 
     current_time = time.time()
 
@@ -190,8 +187,11 @@ def filter_handler(unused_addr, *args):
             pupil_time_align_val = None
         group_data.append((['IMAGE'], curr_image))
         group_data.append((['SUBJECT_RESPONSE'], subject_response))
+        group_data.append((['SUBJECT_CONFIDENCE'], subject_confidence))
         if subject_response != '':
             subject_response = ''
+        if subject_confidence != '':
+            subject_confidence = ''
         emotibit_data_log.append(group_data)
         emotibit_last_collect_time = current_time
         emotibit_latest_osc_data = f"data: {group_data}"
@@ -362,6 +362,8 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
     global curr_image
     global bookend_annotation
     global send_subject_response
+    global subject_response
+    global subject_confidence
     global date_time
     global subject_save_location
     global emotibit_save_location
@@ -445,6 +447,7 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
             pupil_time_align_val = request_pupil_time(pupil_remote)
             print(pupil_time_align_val, 'time align')
             minimal_trigger = new_trigger(subject_response, duration, local_time + stable_offset_mean)
+            minimal_trigger = new_trigger(subject_confidence, duration, local_time + stable_offset_mean)
             send_trigger(pub_socket, minimal_trigger)
             send_subject_response = False
             
@@ -517,7 +520,6 @@ def learning_phase(images, practice = False):
         scale_factor = min(scale_width, scale_height)
         pos_scale = 0.1 if on_lab_comp else 0.05
         image = visual.ImageStim(win, image=img_path, size=(img_width * scale_factor, img_height * scale_factor), pos =(0,win_height*pos_scale), units = 'pix') 
-        text = "Do you recognize this face? \n \n (1: Yes, 2: No)"
 
         img_name = os.path.basename(img_path)  # Get the filename of the image
         text = f"Name: {images_to_info.get(img_name, '').get('Name')} \n \n Fact: {images_to_info.get(img_name, '').get('Fact')}"
@@ -527,7 +529,7 @@ def learning_phase(images, practice = False):
         send_annotation_to_pupil = True
 
         image.draw()
-        text_stim = visual.TextStim(win, text=text, pos=(0, -0.5), color=(1, 1, 1))
+        text_stim = visual.TextStim(win, text=text, pos=(0, -0.7), color=(1, 1, 1))
         text_stim.draw()
         win.flip()
         
@@ -555,6 +557,7 @@ def recognition_phase(shown_images, extra_images, repeats = False, ratio_shown =
     global send_annotation_to_pupil
     global bookend_annotation
     global subject_response
+    global subject_confidence
     global send_subject_response
 
     if ratio_shown != 1:
@@ -584,7 +587,6 @@ def recognition_phase(shown_images, extra_images, repeats = False, ratio_shown =
         scale_factor = min(scale_width, scale_height)
 
         image = visual.ImageStim(win, image=img_path, size=(img_width * scale_factor, img_height * scale_factor), units = 'pix')
-        text = "Do you recognize this face? \n \n (1: Yes, 2: No)"
 
         image.draw()
         win.flip()
@@ -601,7 +603,8 @@ def recognition_phase(shown_images, extra_images, repeats = False, ratio_shown =
             core.quit()
 
         
-        text_stim = visual.TextStim(win, text=text, pos=(0,0), color=(1, 1, 1))
+        text_stim = visual.TextStim(win, text="Do you recognize this face? \n \n (1: Yes, 2: No)", 
+                                    pos=(0,0), color=(1, 1, 1))
         text_stim.draw()
         win.flip()
         keys = event.waitKeys(keyList=['1', '2', 'num_1', 'num_2', 'escape'], timeStamped=timer)
@@ -611,14 +614,26 @@ def recognition_phase(shown_images, extra_images, repeats = False, ratio_shown =
             if key == '1' or key == 'num_1':
                 print('Yes')
                 subject_response = 'Y'
-                send_subject_response = True
             elif key == '2'or key == 'num_2':
                 print('No')
                 subject_response = 'N'
-                send_subject_response = True
             if key == 'escape':
                 core.quit()
-        
+
+        text_stim = visual.TextStim(win, text="How confident are you in your previous response? \n \n (1: High Confidence, 2: Low Confidence)", 
+                                    pos=(0,0), color=(1, 1, 1))
+        text_stim.draw()
+        win.flip()
+        keys = event.waitKeys(keyList=['1', '2', 'num_1', 'num_2', 'escape'], timeStamped=timer)
+        if keys:
+            key, reaction_time = keys[0]
+            if key == '1' or key == 'num_1':
+                subject_confidence = 'H'
+            elif key == '2'or key == 'num_2':
+                subject_confidence = 'L'
+            if key == 'escape':
+                core.quit()
+        send_subject_response = True
         bookend_annotation = True
         send_annotation_to_pupil = True
 
@@ -642,6 +657,7 @@ def recall_phase(images_to_show, extra_images, recall_type, practice = False):
     global send_annotation_to_pupil
     global bookend_annotation
     global subject_response
+    global subject_confidence
     global send_subject_response
     global experiment_num
 
@@ -649,12 +665,8 @@ def recall_phase(images_to_show, extra_images, recall_type, practice = False):
     random.shuffle(images)
 
     if recall_type == 'name':
-        text = "Use the following 10 seconds to try to recall the person's name in your mind. \n \n (Do not say out loud)"
-    elif recall_type == 'fact':
-        text = "Use the following 10 seconds to try to recall a fact with this person in your mind. \n \n (Do not say out loud)"
-    elif recall_type == 'memory':
-        text = "Use the following 10 seconds to try to recall a personal memory with this person your mind. \n \n (Do not say out loud)"
-    
+        text = "Use the following 10 seconds to try to recall the person's first name (or anything else about them) in your mind. \n \n (Do not say out loud)"
+        
     text_stim = visual.TextStim(win, text=text, pos=(0,0), color=(1, 1, 1))
     text_stim.draw()
     win.flip()
@@ -696,11 +708,8 @@ def recall_phase(images_to_show, extra_images, recall_type, practice = False):
             core.quit()
         
         if recall_type == 'name':
-            text = "Do you remember this person's name? \n \n (1: Yes, 2: No)"
-        elif recall_type == 'fact':
-            text = "Do you remember facts about this person? \n \n (1: Yes, 2: No)"
-        elif recall_type == 'memory':
-            text = "Do you have a memory involving this person? \n \n (1: Yes, 2: No)"
+            text = "Do you remember this person's first name (or anything else about them)? \n \n (1: Yes, 2: No)"
+
         text_stim = visual.TextStim(win, text=text, pos=(0,0), color=(1, 1, 1))
         text_stim.draw()
         win.flip()
@@ -709,23 +718,43 @@ def recall_phase(images_to_show, extra_images, recall_type, practice = False):
             key, reaction_time = keys[0]
             if key == '1' or key == 'num_1':
                 subject_response = 'Y'
-                send_subject_response = True
             elif key == '2'or key == 'num_2':
                 subject_response = 'N'
-                send_subject_response = True
             if key == 'escape':
                 core.quit()
+        
+        text_stim = visual.TextStim(win, text="How confident are you in your previous response? \n \n (1: High Confidence, 2: Low Confidence)", 
+                                    pos=(0,0), color=(1, 1, 1))
+        text_stim.draw()
+        win.flip()
+        keys = event.waitKeys(keyList=['1', '2', 'num_1', 'num_2', 'escape'], timeStamped=timer)
+        if keys:
+            key, reaction_time = keys[0]
+            if key == '1' or key == 'num_1':
+                subject_confidence = 'H'
+            elif key == '2'or key == 'num_2':
+                subject_confidence = 'L'
+            if key == 'escape':
+                core.quit()
+
+        send_subject_response = True
+        bookend_annotation = True
+        send_annotation_to_pupil = True
+
+        # Break between images (only during learning phase)
+        noise_stim.draw()
+        win.flip()
+        core.wait(break_time)
+        keys = event.getKeys(keyList=['escape'])
+        if 'escape' in keys:
+            core.quit()
         
         current_annotation = f'recall {recall_type} verbal' if not practice else f'practice recall {recall_type} verbal'
         curr_image = img_name
         send_annotation_to_pupil = True
 
         if recall_type == 'name':
-            text = "Now try your best to say the person's name out loud."
-        elif recall_type == 'fact':
-            text = "Now try your best to say the person's facts out loud."
-        elif recall_type == 'memory':
-            text = "Now try your best to say the memory out loud."
+            text = "Now try your best to say what you remember out loud."
 
         text_stim = visual.TextStim(win, text=text, pos=(0,0), color=(1, 1, 1))
         text_stim.draw()
