@@ -15,8 +15,6 @@ import json
 import numpy as np
 from PIL import Image
 
-#TODO: verify emotibit timestamps
-
 #TODO: batches down to 24 images, 8 each
 
 # VARIABLES THAT CAN CHANGE - ADJUST THESE TO CHANGE THE EXPERIMENT
@@ -27,7 +25,7 @@ subject_id = 'test'
 experiment_num = 1
 date_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 subject_save_location = os.path.join('./', data_save_location, subject_id, date_time)
-emotibit_save_location = os.path.join('E://memeye_experiments', data_save_location, subject_id, date_time) if on_lab_comp else subject_save_location
+emotibit_save_location = os.path.join('/Users/memeye/Desktop/memeye_data/raw', data_save_location, subject_id, date_time) if on_lab_comp else subject_save_location
 
 learning_time = 10  # Time each image is shown during learning phase (in seconds)
 recognition_time = 7
@@ -1003,10 +1001,10 @@ if __name__=='__main__':
     with open(image_info_path, 'r') as file:
         images_to_info = json.load(file)
 
-    EMOTIBIT_PORT_NUMBER = 12345
-    EMOTIBIT_IP_DEFAULT = "127.0.0.1"
-    sensor_thread = Thread(target=collect_sensor_data, args = (EMOTIBIT_IP_DEFAULT, EMOTIBIT_PORT_NUMBER))
-    sensor_thread.start()
+    # EMOTIBIT_PORT_NUMBER = 12345
+    # EMOTIBIT_IP_DEFAULT = "127.0.0.1"
+    # sensor_thread = Thread(target=collect_sensor_data, args = (EMOTIBIT_IP_DEFAULT, EMOTIBIT_PORT_NUMBER))
+    # sensor_thread.start()
     
     experiment_gui(experiment_num)
 
