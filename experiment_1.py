@@ -17,6 +17,8 @@ from PIL import Image
 
 #TODO: verify emotibit timestamps
 
+#TODO: batches down to 24 images, 8 each
+
 # VARIABLES THAT CAN CHANGE - ADJUST THESE TO CHANGE THE EXPERIMENT
 on_lab_comp = True
 EMOTIBIT_BUFFER_INTERVAL = 0.02  # 50hz, fastest datastream is 25Hz, can probably do 0.04
