@@ -21,7 +21,7 @@ from PIL import Image
 on_lab_comp = True
 EMOTIBIT_BUFFER_INTERVAL = 0.02  # 50hz, fastest datastream is 25Hz, can probably do 0.04
 data_save_location = 'data'
-subject_id = 'test'
+subject_id = 'test' #TODO: CHANGE THIS TO PID IN TABLE
 experiment_num = 1
 date_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 subject_save_location = os.path.join('./', data_save_location, subject_id, date_time)
@@ -53,7 +53,7 @@ if not on_lab_comp:
 else:
      win = visual.Window(
         fullscr=True,  # Fullscreen is set to False
-        screen=0,
+        screen=1,
         color=[0, 0, 0]
     )
 print(win.size)
