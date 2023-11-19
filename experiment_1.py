@@ -39,35 +39,6 @@ exp_1_shown_images_dir = './experiment_1_images/people/shown/'
 exp_1_extra_images_dir = './experiment_1_images/people/extra/'
 exp_1_practice_images_dir = './experiment_1_images/people/practice/'
 
-
-mon = monitors.Monitor('testMonitor')  # Replace 'testMonitor' with the name of your monitor
-screen_width, screen_height = mon.getSizePix()
-print(mon.getSizePix())
-window_height = screen_height - 50  # Adjust this value to leave space for the taskbar/dock
-if not on_lab_comp:
-    win = visual.Window(
-        size=(1350, 740), 
-        pos=(0, 25),  # This centers the window vertically. Adjust as needed.
-        fullscr=False,  # Fullscreen is set to False
-        screen=0,
-        color=[0, 0, 0]
-    )
-else:
-     win = visual.Window(
-        fullscr=True,  # Fullscreen is set to False
-        screen=1,
-        color=[0, 0, 0]
-    )
-print(win.size)
-# win = visual.Window(fullscr=False, color=[0, 0, 0])
-noise_texture = np.random.normal(loc=0.5, scale=0.3, size=(win.size[1], win.size[0])) # loc is the mean, scale is the standard deviation
-
-# Normalize the noise texture to be within the range [0, 1], as expected by PsychoPy
-noise_texture = (noise_texture - noise_texture.min()) / (noise_texture.max() - noise_texture.min())
-# Create an image stimulus from the RGB noise
-noise_stim = visual.ImageStim(win, image=noise_texture, size = win.size, units='pix')
-# beep = sound.Sound(value='C', secs=0.3)
-
 record_num = 0
 emotibit_latest_osc_data = None
 emotibit_last_collect_time = time.time()
@@ -207,23 +178,25 @@ def filter_handler(unused_addr, *args):
 def emotibit_save_data(data_log):
     global emotibit_save_location
     global record_num
-
-    dict_data = []
-    for row in data_log:
-        row_dict = {}
-        for item in row:
-            if item is None:
-                continue
-            label = item[0][0]  # Extract the label
-            values = item[1:]   # Get the data values
-            for i, value in enumerate(values):
-                col_name = f"{label}_{i+1}"  # Construct the column name
-                row_dict[col_name] = value
-        dict_data.append(row_dict)
-    df = pd.DataFrame(dict_data)
-    full_path = os.path.join(emotibit_save_location, f'experiment_{experiment_num}')
-    if not os.path.exists(full_path):
-        os.makedirs(full_path)
+    try:
+        dict_data = []
+        for row in data_log:
+            row_dict = {}
+            for item in row:
+                if item is None:
+                    continue
+                label = item[0][0]  # Extract the label
+                values = item[1:]   # Get the data values
+                for i, value in enumerate(values):
+                    col_name = f"{label}_{i+1}"  # Construct the column name
+                    row_dict[col_name] = value
+            dict_data.append(row_dict)
+        df = pd.DataFrame(dict_data)
+        full_path = os.path.join(emotibit_save_location, f'experiment_{experiment_num}')
+        if not os.path.exists(full_path):
+            os.makedirs(full_path)
+    except:
+        print(f'error saving emotibit data at {full_path}')
 
     # Create the full path to the file
     file_path = os.path.join(full_path,f'record_{record_num}.csv')
@@ -355,7 +328,7 @@ def new_trigger(label, duration, timestamp):
         "duration": duration,
     }
 
-def collect_sensor_data(emotibit_ip, emotibit_port):
+def collect_sensor_data():
     global emotibit_collect_data
     global current_annotation
     global emotibit_test_output
@@ -376,7 +349,7 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
     global subject_save_location
     global emotibit_save_location
 
-    emotibit_server, emotibit_dispatch = emotibit_server_thread(emotibit_ip, emotibit_port)
+    emotibit_server, emotibit_dispatch = emotibit_server_thread("127.0.0.1", 12345)
 
     pupil_ip, pupil_port = "127.0.0.1", 50020
     emotibit_thread = Thread(target=emotibit_server.serve_forever)
@@ -538,11 +511,13 @@ def collect_sensor_data(emotibit_ip, emotibit_port):
             pupil_remote.close()
             pub_socket.close()
             exit_sensors = False
+            # emotibit_thread.join()
+            break
 
 
-def learning_phase(images, practice = False):
-    global win
-    global noise_stim
+def learning_phase(win, noise_stim, images, practice = False):
+    # global win
+    # global noise_stim
     global learning_time
     global break_time
     global current_annotation
@@ -594,9 +569,9 @@ def learning_phase(images, practice = False):
         core.wait(break_time)
 
 
-def recognition_phase(shown_images, extra_images, repeats = False, ratio_shown = 1, practice = False):
-    global win
-    global noise_stim
+def recognition_phase(win, noise_stim, shown_images, extra_images, repeats = False, ratio_shown = 1, practice = False):
+    # global win
+    # global noise_stim
     global recognition_time
     global break_time
     global current_annotation
@@ -705,9 +680,9 @@ def recognition_phase(shown_images, extra_images, repeats = False, ratio_shown =
             core.quit()
 
 
-def recall_phase(images_to_show, extra_images, recall_type, practice = False):
-    global win
-    global noise_stim
+def recall_phase(win, noise_stim, images_to_show, extra_images, recall_type, practice = False):
+    # global win
+    # global noise_stim
     global recall_time
     global recall_verbal_time
     global break_time
@@ -833,16 +808,16 @@ def recall_phase(images_to_show, extra_images, recall_type, practice = False):
         if 'escape' in keys:
             core.quit()
 
-def instructions(text):
-    global win
+def instructions(win, text):
+    # global win
     text_stim = visual.TextStim(win, text=text, pos=(0,0), color=(1, 1, 1))
     text_stim.draw()
     win.flip()
     core.wait(1)
     event.waitKeys(keyList=['1', 'num_1'])
 
-def game_break():
-    global win
+def game_break(win):
+    # global win
     global current_annotation
     global send_annotation_to_pupil
     global bookend_annotation
@@ -862,8 +837,8 @@ def game_break():
     core.wait(1)
     event.waitKeys(keyList=['1', 'num_1'])
 
-def relax_break():
-    global win
+def relax_break(win):
+    # global win
     global current_annotation
     global send_annotation_to_pupil
     global bookend_annotation
@@ -884,17 +859,18 @@ def relax_break():
     event.waitKeys(keyList=['1', 'num_1'])
 
 
-def experiment_gui(exp_num):
+def experiment_gui():
     global exp_1_shown_images_dir
     global exp_1_extra_images_dir
-    global win
+    # global win
     global start_recording
     global stop_recording
     global exit_sensors
-    global noise_stim
+    # global noise_stim
     global start_recording
     global stop_recording
     global batch_recording
+    global on_lab_comp
 
     # Load images
     shown_images = [os.path.join(exp_1_shown_images_dir, img) for img in os.listdir(exp_1_shown_images_dir) if img.endswith('.jpg')]
@@ -917,113 +893,135 @@ def experiment_gui(exp_num):
     shown_images_batches = [shown_images[:11], shown_images[11:22], shown_images[22:]]
     extra_images_batches = [extra_images[:4], extra_images[4:8], extra_images[8:]]
 
+    mon = monitors.Monitor('testMonitor')  # Replace 'testMonitor' with the name of your monitor
+    screen_width, screen_height = mon.getSizePix()
+    print(mon.getSizePix())
+    window_height = screen_height - 50  # Adjust this value to leave space for the taskbar/dock
+    if not on_lab_comp:
+        win = visual.Window(
+            size=(1350, 740), 
+            pos=(0, 25),  # This centers the window vertically. Adjust as needed.
+            fullscr=False,  # Fullscreen is set to False
+            screen=0,
+            color=[0, 0, 0]
+        )
+    else:
+        win = visual.Window(
+            fullscr=True,  # Fullscreen is set to False
+            screen=1,
+            color=[0, 0, 0]
+        )
+    print(win.size)
+
+    noise_texture = np.random.normal(loc=0.5, scale=0.3, size=(win.size[1], win.size[0])) # loc is the mean, scale is the standard deviation
+
+    # Normalize the noise texture to be within the range [0, 1], as expected by PsychoPy
+    noise_texture = (noise_texture - noise_texture.min()) / (noise_texture.max() - noise_texture.min())
+    # Create an image stimulus from the RGB noise
+    noise_stim = visual.ImageStim(win, image=noise_texture, size = win.size, units='pix')
+
+
     # Run experiment
     start_recording = True
 
     # baseline
     text = "Before we begin, please relax and try to keep still while looking at the screen. \n\n  This part will be three minutes. \n \n Press [1] to continue." 
-    instructions(text)
+    instructions(win, text)
     noise_stim.draw()
     win.flip()
     core.wait(180)
     # practice phases are all here
     text = "We will now begin the practice section. \n \n Press [1] to continue."
-    instructions(text)
+    instructions(win, text)
     text = f"This study will consist of several sections that involve looking at images of faces. \n \n You will be asked to try to remember as many details as you can and answer questions later. \n \n Press [1] to continue. "
-    instructions(text)
+    instructions(win, text)
 
     text = f"We will now begin a practice learning phase of the experiment. \n \n Press [1] to continue"
-    instructions(text)
+    instructions(win, text)
     text = "Instructions: \n \n You will be shown a sequence of images with the person's name and related facts. \n \n Please keep your attention on the screen and remember as many details as possible for each person. \n \n You will be tested on how much you remember after this. \n \n It will automatically move forward to the next part. \n \n Press [1] to continue."
-    instructions(text)
-    learning_phase(practice_images, practice = True)
+    instructions(win, text)
+    learning_phase(win, noise_stim, practice_images, practice = True)
     text = "End of practice learning phase. \n \n Take a quick break, ask any questions. \n \n Press [1] to continue."
 
     #practice recognition phase
-    instructions(f"We will now begin a practice recognition phase of the experiment. \n \n Press [1] to continue")
+    instructions(win, f"We will now begin a practice recognition phase of the experiment. \n \n Press [1] to continue")
     text = f"Instructions: \n \n You will be shown a sequence of images. \n \n Please keep your attention on the screen at all times. \n \n When you see the image, your job is just to look at it - it will automatically move forward to the next part. \n \n Press [1] to continue."
-    instructions(text)
-    recognition_phase(practice_images, [], repeats = False, ratio_shown = 1, practice=True)
-    instructions('End of practice recognition phase. \n \n Take a quick break, ask any questions. \n \n Press [1] to continue.')
+    instructions(win, text)
+    recognition_phase(win, noise_stim, practice_images, [], repeats = False, ratio_shown = 1, practice=True)
+    instructions(win, 'End of practice recognition phase. \n \n Take a quick break, ask any questions. \n \n Press [1] to continue.')
 
     #practice names phase
-    instructions(f"We will now begin a practice names phase of the experiment. \n \n Press [1] to continue")
+    instructions(win, f"We will now begin a practice names phase of the experiment. \n \n Press [1] to continue")
     text = f"Instructions: \n \n You will be shown a sequence of images. \n \n Please keep your attention on the screen at all times. \n \n When you see the image, your job is just to look at it - it will automatically move forward to the next part. \n \n Press [1] to continue."
-    instructions(text)
-    recall_phase(practice_images, [], 'name', practice=True)
-    instructions('End of practice names phase. \n \n  Take a quick break, ask any questions. \n \n Press [1] to continue.')
+    instructions(win, text)
+    recall_phase(win, noise_stim, practice_images, [], 'name', practice=True)
+    instructions(win, 'End of practice names phase. \n \n  Take a quick break, ask any questions. \n \n Press [1] to continue.')
 
     text = "End of practice sections. \n \n If you have questions, please ask the researcher. \n \n Press [1] to continue to the game break."
-    instructions(text)
+    instructions(win, text)
     
     # Practice batch recording
     batch_recording = True
 
-    game_break()
+    game_break(win)
 
-    # text = "We will now begin the main experiment. \n \n Press [1] to continue."
-    # instructions(text)
+    text = "We will now begin the main experiment. \n \n Press [1] to continue."
+    instructions(text)
 
-    # for i in range(3):
+    for i in range(3):
 
-    #     shown_images = shown_images_batches[i]
-    #     extra_images = extra_images_batches[i]
+        shown_images = shown_images_batches[i]
+        extra_images = extra_images_batches[i]
 
-    #     # Phase 1: Learning
-    #     text = f"We will now begin the learning phase of the experiment (Batch {i+1} out of 3). \n \n Press [1] to continue"
-    #     instructions(text)
-    #     text = "Instructions: \n \n You will be shown a sequence of images with the person's name and related facts. \n \n Please keep your attention on the screen and remember as many details as possible for each person. \n \n You will be tested on how much you remember after this. \n \n It will automatically move forward to the next part. \n \n Press [1] to continue."
-    #     instructions(text)
-    #     learning_phase(shown_images)
-    #     instructions('End of learning phase. \n \n Press [1] to continue to the game break.')
-    #     game_break()
+        # Phase 1: Learning
+        text = f"We will now begin the learning phase of the experiment (Batch {i+1} out of 3). \n \n Press [1] to continue"
+        instructions(text)
+        text = "Instructions: \n \n You will be shown a sequence of images with the person's name and related facts. \n \n Please keep your attention on the screen and remember as many details as possible for each person. \n \n You will be tested on how much you remember after this. \n \n It will automatically move forward to the next part. \n \n Press [1] to continue."
+        instructions(text)
+        learning_phase(shown_images)
+        instructions('End of learning phase. \n \n Press [1] to continue to the game break.')
+        game_break()
 
-    #     # Phase 2: Recognition  
-    #     text = f"We will now begin the recognition phase of the experiment (Batch {i+1} out of 3). \n \n Press [1] to continue"
-    #     instructions(text)
-    #     text = f"Instructions: \n \n You will be shown a sequence of images. \n \n When you see the image, your job is just to look at it - it will automatically move forward to the next part. \n \n Press [1] to continue."
-    #     instructions(text)
-    #     recognition_phase(shown_images, extra_images, repeats = False, ratio_shown = 1)
-    #     instructions('End of recognition phase. \n \n Press [1] to continue to the game break.')
-    #     game_break()
+        # Phase 2: Recognition  
+        text = f"We will now begin the recognition phase of the experiment (Batch {i+1} out of 3). \n \n Press [1] to continue"
+        instructions(text)
+        text = f"Instructions: \n \n You will be shown a sequence of images. \n \n When you see the image, your job is just to look at it - it will automatically move forward to the next part. \n \n Press [1] to continue."
+        instructions(text)
+        recognition_phase(shown_images, extra_images, repeats = False, ratio_shown = 1)
+        instructions('End of recognition phase. \n \n Press [1] to continue to the game break.')
+        game_break()
 
-    #     # Phase 3: Names
-    #     text = f"We will now begin the names phase of the experiment (Batch {i+1} out of 3). \n \n Press [1] to continue"
-    #     instructions(text)
-    #     text = f"Instructions: \n \n You will be shown a sequence of images. \n \n Please keep your attention on the screen at all times. \n \n When you see the image, your job is just to look at it - it will automatically move forward to the next part. \n \n Press [1] to continue."
-    #     instructions(text)
-    #     recall_phase(shown_images, [], 'name')
-    #     instructions('End of names phase. \n \n Press [1] to continue.')
+        # Phase 3: Names
+        text = f"We will now begin the names phase of the experiment (Batch {i+1} out of 3). \n \n Press [1] to continue"
+        instructions(text)
+        text = f"Instructions: \n \n You will be shown a sequence of images. \n \n Please keep your attention on the screen at all times. \n \n When you see the image, your job is just to look at it - it will automatically move forward to the next part. \n \n Press [1] to continue."
+        instructions(text)
+        recall_phase(shown_images, [], 'name')
+        instructions('End of names phase. \n \n Press [1] to continue.')
 
-    #     # batch recording
-    #     if i < 2:
-    #         instructions(f'End of batch {i+1} out of 3. \n \n Press [1] to continue to game/relax break.')
-    #         batch_recording = True
-    #         game_break()
-    #         relax_break()
-    #     else:
-    #         instructions(f'End of batch {i+1} out of 3. \n \n Press [1] to continue.')
+        # batch recording
+        if i < 2:
+            instructions(f'End of batch {i+1} out of 3. \n \n Press [1] to continue to game/relax break.')
+            batch_recording = True
+            game_break()
+            relax_break()
+        else:
+            instructions(f'End of batch {i+1} out of 3. \n \n Press [1] to continue.')
 
     exit_sensors = True
-    instructions(f"We have now completed the experiment. \n \n Press [1] to exit")
+    instructions(win, f"We have now completed the experiment. \n \n Press [1] to exit")
     win.close()
-    core.quit()
+    # core.quit()
 
 if __name__=='__main__':
     image_info_path = './experiment_1_names_facts.json'
     with open(image_info_path, 'r') as file:
         images_to_info = json.load(file)
 
-    EMOTIBIT_PORT_NUMBER = 12345
-    EMOTIBIT_IP_DEFAULT = "127.0.0.1"
-    sensor_thread = Thread(target=collect_sensor_data, args = (EMOTIBIT_IP_DEFAULT, EMOTIBIT_PORT_NUMBER))
+
+    sensor_thread = Thread(target=collect_sensor_data)
     sensor_thread.start()
     
-    experiment_gui(experiment_num)
+    experiment_gui()
 
-#     "lsl": {
-#     "marker": {
-#       "name": "EmotibitDataSyncMarker",
-#       "sourceId": "12345"
-#     }
-#   }
+    sensor_thread.join()
