@@ -238,7 +238,9 @@ def collect_sensor_data():
             message = f'R {full_path}'
             pupil_remote.send_string(message)
             pupil_remote.recv_string()
+            outlet.push_sample(['starting pupil recording'])
             pupil_time_align_val = request_pupil_time(pupil_remote)
+            outlet.push_sample([pupil_time_align_val])
             print(pupil_time_align_val, 'time align')
             start_recording = False
             pupil_time_align_val = None
@@ -325,10 +327,12 @@ def collect_sensor_data():
             current_annotation = ''
 
             # stop recording
+            
             pupil_remote.send_string("r")
             pupil_remote.recv_string()
             pupil_remote.close()
             pub_socket.close()
+            outlet.__del__()
             exit_sensors = False
             break
 
@@ -699,17 +703,17 @@ def experiment_gui():
     random.shuffle(extra_images)
 
     # TESTING VARS
-    # shown_images_batches = [shown_images[:1], shown_images[1:2], shown_images[2:3]]
-    # extra_images_batches = [extra_images[:1], extra_images[1:2], extra_images[2:3]]
+    shown_images_batches = [shown_images[:1], shown_images[1:2], shown_images[2:3]]
+    extra_images_batches = [extra_images[:1], extra_images[1:2], extra_images[2:3]]
 
-    shown_images = random.sample(shown_images, 33)
-    extra_images = random.sample(extra_images, 12)
+    # shown_images = random.sample(shown_images, 33)
+    # extra_images = random.sample(extra_images, 12)
 
-    random.shuffle(shown_images)
-    random.shuffle(extra_images)
+    # random.shuffle(shown_images)
+    # random.shuffle(extra_images)
 
-    shown_images_batches = [shown_images[:11], shown_images[11:22], shown_images[22:]]
-    extra_images_batches = [extra_images[:4], extra_images[4:8], extra_images[8:]]
+    # shown_images_batches = [shown_images[:11], shown_images[11:22], shown_images[22:]]
+    # extra_images_batches = [extra_images[:4], extra_images[4:8], extra_images[8:]]
 
     mon = monitors.Monitor('testMonitor')  # Replace 'testMonitor' with the name of your monitor
     screen_width, screen_height = mon.getSizePix()
@@ -743,11 +747,11 @@ def experiment_gui():
     start_recording = True
 
     # baseline
-    text = "Before we begin, please relax and try to keep still while looking at the screen. \n\n  This part will be three minutes. \n \n Press [1] to continue." 
-    instructions(win, text)
-    noise_stim.draw()
-    win.flip()
-    core.wait(180)
+    # text = "Before we begin, please relax and try to keep still while looking at the screen. \n\n  This part will be three minutes. \n \n Press [1] to continue." 
+    # instructions(win, text)
+    # noise_stim.draw()
+    # win.flip()
+    # core.wait(180)
     # practice phases are all here
     text = "We will now begin the practice section. \n \n Press [1] to continue."
     instructions(win, text)
@@ -784,47 +788,47 @@ def experiment_gui():
     game_break(win)
 
     text = "We will now begin the main experiment. \n \n Press [1] to continue."
-    instructions(text)
+    instructions(win, text)
 
-    for i in range(3):
+    # for i in range(3):
 
-        shown_images = shown_images_batches[i]
-        extra_images = extra_images_batches[i]
+    #     shown_images = shown_images_batches[i]
+    #     extra_images = extra_images_batches[i]
 
-        # Phase 1: Learning
-        text = f"We will now begin the learning phase of the experiment (Batch {i+1} out of 3). \n \n Press [1] to continue"
-        instructions(text)
-        text = "Instructions: \n \n You will be shown a sequence of images with the person's name and related facts. \n \n Please keep your attention on the screen and remember as many details as possible for each person. \n \n You will be tested on how much you remember after this. \n \n It will automatically move forward to the next part. \n \n Press [1] to continue."
-        instructions(text)
-        learning_phase(shown_images)
-        instructions('End of learning phase. \n \n Press [1] to continue to the game break.')
-        game_break()
+    #     # Phase 1: Learning
+    #     text = f"We will now begin the learning phase of the experiment (Batch {i+1} out of 3). \n \n Press [1] to continue"
+    #     instructions(win, text)
+    #     text = "Instructions: \n \n You will be shown a sequence of images with the person's name and related facts. \n \n Please keep your attention on the screen and remember as many details as possible for each person. \n \n You will be tested on how much you remember after this. \n \n It will automatically move forward to the next part. \n \n Press [1] to continue."
+    #     instructions(win, text)
+    #     learning_phase(win, noise_stim, shown_images)
+    #     instructions(win, 'End of learning phase. \n \n Press [1] to continue to the game break.')
+    #     game_break(win)
 
-        # Phase 2: Recognition  
-        text = f"We will now begin the recognition phase of the experiment (Batch {i+1} out of 3). \n \n Press [1] to continue"
-        instructions(text)
-        text = f"Instructions: \n \n You will be shown a sequence of images. \n \n When you see the image, your job is just to look at it - it will automatically move forward to the next part. \n \n Press [1] to continue."
-        instructions(text)
-        recognition_phase(shown_images, extra_images, repeats = False, ratio_shown = 1)
-        instructions('End of recognition phase. \n \n Press [1] to continue to the game break.')
-        game_break()
+    #     # Phase 2: Recognition  
+    #     text = f"We will now begin the recognition phase of the experiment (Batch {i+1} out of 3). \n \n Press [1] to continue"
+    #     instructions(win, text)
+    #     text = f"Instructions: \n \n You will be shown a sequence of images. \n \n When you see the image, your job is just to look at it - it will automatically move forward to the next part. \n \n Press [1] to continue."
+    #     instructions(win, text)
+    #     recognition_phase(win, noise_stim, shown_images, extra_images, repeats = False, ratio_shown = 1)
+    #     instructions(win, 'End of recognition phase. \n \n Press [1] to continue to the game break.')
+    #     game_break(win)
 
-        # Phase 3: Names
-        text = f"We will now begin the names phase of the experiment (Batch {i+1} out of 3). \n \n Press [1] to continue"
-        instructions(text)
-        text = f"Instructions: \n \n You will be shown a sequence of images. \n \n Please keep your attention on the screen at all times. \n \n When you see the image, your job is just to look at it - it will automatically move forward to the next part. \n \n Press [1] to continue."
-        instructions(text)
-        recall_phase(shown_images, [], 'name')
-        instructions('End of names phase. \n \n Press [1] to continue.')
+    #     # Phase 3: Names
+    #     text = f"We will now begin the names phase of the experiment (Batch {i+1} out of 3). \n \n Press [1] to continue"
+    #     instructions(win, text)
+    #     text = f"Instructions: \n \n You will be shown a sequence of images. \n \n Please keep your attention on the screen at all times. \n \n When you see the image, your job is just to look at it - it will automatically move forward to the next part. \n \n Press [1] to continue."
+    #     instructions(win, text)
+    #     recall_phase(win, noise_stim, shown_images, [], 'name')
+    #     instructions(win, 'End of names phase. \n \n Press [1] to continue.')
 
-        # batch recording
-        if i < 2:
-            instructions(f'End of batch {i+1} out of 3. \n \n Press [1] to continue to game/relax break.')
-            # batch_recording = True
-            game_break()
-            relax_break()
-        else:
-            instructions(f'End of batch {i+1} out of 3. \n \n Press [1] to continue.')
+    #     # batch recording
+    #     if i < 2:
+    #         instructions(win, f'End of batch {i+1} out of 3. \n \n Press [1] to continue to game/relax break.')
+    #         # batch_recording = True
+    #         game_break(win)
+    #         relax_break(win)
+    #     else:
+    #         instructions(win, f'End of batch {i+1} out of 3. \n \n Press [1] to continue.')
 
     exit_sensors = True
     instructions(win, f"We have now completed the experiment. \n \n Press [1] to exit")
