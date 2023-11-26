@@ -14,6 +14,7 @@ import json
 import numpy as np
 from PIL import Image
 import faulthandler
+from pylsl import StreamInfo, StreamOutlet
 from psychopy import visual, core, event, monitors #, sound
 faulthandler.enable()
 
@@ -28,6 +29,10 @@ experiment_num = 1
 date_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 subject_save_location = os.path.join('./', data_save_location, subject_id, date_time)
 emotibit_save_location = os.path.join('/Users/memeye/Desktop/memeye_data/raw', data_save_location, subject_id, date_time) if on_lab_comp else subject_save_location
+
+info = StreamInfo(name='EmotibitDataSyncMarker', type='Tags', channel_count=1,
+                      channel_format='string', source_id='12345')
+outlet = StreamOutlet(info)  # Broadcast the stream.
 
 learning_time = 10  # Time each image is shown during learning phase (in seconds)
 recognition_time = 7
@@ -53,165 +58,12 @@ subject_confidence = ''
 
 start_recording = False
 stop_recording = False
-batch_recording = False
+# batch_recording = False
 send_annotation_to_pupil = False
 exit_sensors = False
 bookend_annotation = False
 send_subject_response = False
 subject_response_in_emotibit = False
-
-emotibit_sensor_buffers = {
-    "/EmotiBit/0/PPG:RED": [],
-    "/EmotiBit/0/PPG:IR": [], 
-    "/EmotiBit/0/PPG:GRN": [], 
-    "/EmotiBit/0/EDA": [],
-    "/EmotiBit/0/HUMIDITY": [], 
-    "/EmotiBit/0/ACC:X": [], 
-    "/EmotiBit/0/ACC:Y": [], 
-    "/EmotiBit/0/ACC:Z": [], 
-    "/EmotiBit/0/GYRO:X": [], 
-    "/EmotiBit/0/GYRO:Y": [], 
-    "/EmotiBit/0/GYRO:Z": [], 
-    "/EmotiBit/0/MAG:X": [], 
-    "/EmotiBit/0/MAG:Y": [], 
-    "/EmotiBit/0/MAG:Z": [], 
-    "/EmotiBit/0/THERM": [], 
-    "/EmotiBit/0/TEMP0": [],
-    "/EmotiBit/0/TEMP1": [],
-    "/EmotiBit/0/EDL": [],
-    "/EmotiBit/0/ER": [],
-    "/EmotiBit/0/SA": [],
-    "/EmotiBit/0/SR": [],
-    "/EmotiBit/0/SF": [],
-    "/EmotiBit/0/HR": [],
-    "/EmotiBit/0/BI": [],
-    "/EmotiBit/0/HUMID": [],
-}
-
-def setup_dispatcher():
-    dispatch = dispatcher.Dispatcher()
-
-    dispatch.map("/EmotiBit/0/PPG:RED", filter_handler, 'PPG_RED')
-    dispatch.map("/EmotiBit/0/PPG:IR", filter_handler, 'PPG_IR')
-    dispatch.map("/EmotiBit/0/PPG:GRN", filter_handler, 'PPG_GRN')
-    dispatch.map("/EmotiBit/0/EDA", filter_handler, 'EDA')
-    dispatch.map("/EmotiBit/0/HUMIDITY", filter_handler, 'HUMIDITY')
-    dispatch.map("/EmotiBit/0/ACC:X", filter_handler, 'ACC_X')
-    dispatch.map("/EmotiBit/0/ACC:Y", filter_handler, 'ACC_Y')
-    dispatch.map("/EmotiBit/0/ACC:Z", filter_handler, 'ACC_Z')
-    dispatch.map("/EmotiBit/0/GYRO:X", filter_handler, 'GYRO_X')
-    dispatch.map("/EmotiBit/0/GYRO:Y", filter_handler, 'GRYO_Y')
-    dispatch.map("/EmotiBit/0/GYRO:Z", filter_handler, 'GYRO_Z')
-    dispatch.map("/EmotiBit/0/MAG:X", filter_handler, 'MAG_X')
-    dispatch.map("/EmotiBit/0/MAG:Y", filter_handler, 'MAG_Y')
-    dispatch.map("/EmotiBit/0/MAG:Z", filter_handler, 'MAG_Z')
-    dispatch.map("/EmotiBit/0/THERM", filter_handler, 'THERM')
-    dispatch.map("/EmotiBit/0/TEMP0", filter_handler, 'TEMP0')
-    dispatch.map("EmotiBit/0/TEMP1", filter_handler, 'TEMP1')
-    dispatch.map("/EmotiBit/0/EDL", filter_handler, 'EDL')
-    dispatch.map("/EmotiBit/0/ER", filter_handler, 'ER')
-    dispatch.map("/EmotiBit/0/SA", filter_handler, 'SA')
-    dispatch.map("/EmotiBit/0/SR", filter_handler, 'SR')
-    dispatch.map("/EmotiBit/0/SF", filter_handler, 'SF')
-    dispatch.map("/EmotiBit/0/HR", filter_handler, 'HR')
-    dispatch.map("/EmotiBit/0/BI", filter_handler, 'BI')
-    dispatch.map("/EmotiBit/0/HUMID", filter_handler, 'HUMID')
-
-    return dispatch
-
-
-def filter_handler(unused_addr, *args):
-    """ Handle incoming OSC messages """
-
-    global emotibit_latest_osc_data
-    global emotibit_last_collect_time
-    global emotibit_data_log
-    global current_annotation
-    global emotibit_sensor_buffers
-    global emotibit_collect_data
-    global emotibit_test_output
-    global EMOTIBIT_BUFFER_INTERVAL
-    global pupil_time_align_val
-    global curr_image
-    global subject_response
-    global subject_confidence
-    global send_subject_response
-    global subject_response_in_emotibit
-
-    current_time = time.time()
-
-    # Append to the relevant buffer
-    emotibit_sensor_buffers[unused_addr].append(args)
-
-    # If the interval has passed, process the buffers
-    if current_time - emotibit_last_collect_time > EMOTIBIT_BUFFER_INTERVAL and emotibit_collect_data:
-        group_data = []
-        timestamp = datetime.datetime.now().isoformat()
-        for address, buffer in emotibit_sensor_buffers.items():
-            # Take the latest value (or None if no data)
-            value = buffer[-1] if buffer else None
-            group_data.append(value)
-            # print(group_data)
-            buffer.clear()  # Clear buffer for next interval
-        # Append the grouped data with a timestamp to data_log
-        group_data.append((['LABEL'], current_annotation))
-        group_data.append((['TIMESTAMP'], timestamp))
-        if pupil_time_align_val != None:
-            group_data.append((['PUPIL_TIME'], pupil_time_align_val))
-            pupil_time_align_val = None
-        group_data.append((['IMAGE'], curr_image))
-        group_data.append((['SUBJECT_RESPONSE'], subject_response))
-        group_data.append((['SUBJECT_CONFIDENCE'], subject_confidence))
-        if (subject_response != '' or subject_confidence != '') and not send_subject_response:
-            subject_response = ''
-            subject_confidence = ''
-            subject_response_in_emotibit = False
-        elif (subject_response != '' or subject_confidence != '') and send_subject_response:
-            subject_response_in_emotibit = True
-        emotibit_data_log.append(group_data)
-        emotibit_last_collect_time = current_time
-        emotibit_latest_osc_data = f"data: {group_data}"
-    elif emotibit_test_output:
-        print(f'data test: {args}')
-        emotibit_test_output = False
-
-def emotibit_save_data(data_log):
-    global emotibit_save_location
-    global record_num
-    try:
-        dict_data = []
-        for row in data_log:
-            row_dict = {}
-            for item in row:
-                if item is None:
-                    continue
-                label = item[0][0]  # Extract the label
-                values = item[1:]   # Get the data values
-                for i, value in enumerate(values):
-                    col_name = f"{label}_{i+1}"  # Construct the column name
-                    row_dict[col_name] = value
-            dict_data.append(row_dict)
-        df = pd.DataFrame(dict_data)
-        full_path = os.path.join(emotibit_save_location, f'experiment_{experiment_num}')
-        if not os.path.exists(full_path):
-            os.makedirs(full_path)
-    except:
-        print(f'error saving emotibit data at {full_path}')
-
-    # Create the full path to the file
-    file_path = os.path.join(full_path,f'record_{record_num}.csv')
-    print(file_path)
-
-    # Save the DataFrame to a CSV file
-    df.to_csv(file_path, index=False)
-    record_num += 1
-
-def emotibit_server_thread(emotibit_ip, emotibit_port):
-    dispatch = setup_dispatcher()
-    # Start OSC server
-    server = osc_server.ThreadingOSCUDPServer((emotibit_ip, emotibit_port), dispatch)
-    print("Emotibit serving on {}".format(server.server_address))
-    return server, dispatch
 
 
 def check_capture_exists(ip_address, port):
@@ -329,31 +181,22 @@ def new_trigger(label, duration, timestamp):
     }
 
 def collect_sensor_data():
-    global emotibit_collect_data
     global current_annotation
-    global emotibit_test_output
-    global emotibit_data_log
     global pupil_time_align_val
     global start_recording
     global stop_recording
-    global batch_recording
     global send_annotation_to_pupil
     global exit_sensors
     global curr_image
     global bookend_annotation
     global send_subject_response
-    global subject_response_in_emotibit
     global subject_response
     global subject_confidence
     global date_time
     global subject_save_location
-    global emotibit_save_location
-
-    emotibit_server, emotibit_dispatch = emotibit_server_thread("127.0.0.1", 12345)
+    global outlet
 
     pupil_ip, pupil_port = "127.0.0.1", 50020
-    emotibit_thread = Thread(target=emotibit_server.serve_forever)
-    emotibit_thread.start()
 
         # 1. Setup network connection
     check_capture_exists(pupil_ip, pupil_port)
@@ -387,11 +230,8 @@ def collect_sensor_data():
     while True:
         if start_recording:
             print('starting recording session')
-
-            emotibit_collect_data = True
             date_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
             subject_save_location = os.path.join('./', data_save_location, subject_id, date_time)
-            emotibit_save_location = os.path.join('/Users/memeye/Desktop/memeye_data/raw', data_save_location, subject_id, date_time) if on_lab_comp else subject_save_location
             full_path = os.path.join(subject_save_location, f'experiment_{experiment_num}')
             if not os.path.exists(full_path):
                 os.makedirs(full_path)
@@ -401,39 +241,7 @@ def collect_sensor_data():
             pupil_time_align_val = request_pupil_time(pupil_remote)
             print(pupil_time_align_val, 'time align')
             start_recording = False
-                    
-        if batch_recording:
-            print('batching recording session and saving')
-            if current_annotation != '':
-                local_time = local_clock()
-                minimal_trigger = new_trigger(current_annotation, duration, local_time + stable_offset_mean)
-                send_trigger(pub_socket, minimal_trigger)
-
-                # Add custom keys to your annotation
-                minimal_trigger["custom_key"] = "custom value"
-                send_trigger(pub_socket, minimal_trigger)
-                current_annotation = ''
-            
-            pupil_time_align_val = request_pupil_time(pupil_remote)
-            print(pupil_time_align_val, 'time align')
-            pupil_remote.send_string("r")
-            pupil_remote.recv_string()
-            emotibit_save_data(emotibit_data_log)
-
-            print('starting recording session')
-            
-            date_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            subject_save_location = os.path.join('./', data_save_location, subject_id, date_time)
-            emotibit_save_location = os.path.join('/Users/memeye/Desktop/memeye_data/raw', data_save_location, subject_id, date_time) if on_lab_comp else subject_save_location
-            full_path = os.path.join(subject_save_location, f'experiment_{experiment_num}')
-            if not os.path.exists(full_path):
-                os.makedirs(full_path)
-            message = f'R {full_path}'
-            pupil_remote.send_string(message)
-            pupil_remote.recv_string()
-            pupil_time_align_val = request_pupil_time(pupil_remote)
-            print(pupil_time_align_val, 'time align')
-            batch_recording = False
+            pupil_time_align_val = None
 
         if stop_recording:
             print('stopping recording session and saving')
@@ -441,51 +249,61 @@ def collect_sensor_data():
                 local_time = local_clock()
                 minimal_trigger = new_trigger(current_annotation, duration, local_time + stable_offset_mean)
                 send_trigger(pub_socket, minimal_trigger)
-
+                outlet.push_sample([current_annotation])
                 # Add custom keys to your annotation
-                minimal_trigger["custom_key"] = "custom value"
-                send_trigger(pub_socket, minimal_trigger)
                 current_annotation = ''
             
             pupil_time_align_val = request_pupil_time(pupil_remote)
             print(pupil_time_align_val, 'time align')
-            emotibit_collect_data = False
-            emotibit_save_data(emotibit_data_log)
-            emotibit_data_log = []
+            outlet.push_sample([pupil_time_align_val])
             pupil_remote.send_string("r")
             pupil_remote.recv_string()
             stop_recording = False
+            pupil_time_align_val = None
         
         if send_subject_response:
             local_time = local_clock()
             pupil_time_align_val = request_pupil_time(pupil_remote)
+            outlet.push_sample([pupil_time_align_val])
             print(pupil_time_align_val, 'time align')
+            pupil_time_align_val = None
             print(subject_response, subject_confidence)
+            
             if subject_response != '':
                 minimal_trigger = new_trigger(subject_response, duration, local_time + stable_offset_mean)
                 send_trigger(pub_socket, minimal_trigger)
+                outlet.push_sample([subject_response])
+                
             if subject_confidence != '':
                 minimal_trigger = new_trigger(subject_confidence, duration, local_time + stable_offset_mean)
                 send_trigger(pub_socket, minimal_trigger)
+                outlet.push_sample([subject_confidence])
+
             send_subject_response = False
-            if subject_response_in_emotibit:
-                subject_response = ''
-                subject_confidence = ''
-                subject_response_in_emotibit = False
+            subject_response = ''
+            subject_confidence = ''
             
         if send_annotation_to_pupil:
             local_time = local_clock()
             print('sending this annotation label')
             pupil_time_align_val = request_pupil_time(pupil_remote)
+            outlet.push_sample([pupil_time_align_val])
             print(pupil_time_align_val, 'time align')
+            
             minimal_trigger = new_trigger(current_annotation, duration, local_time + stable_offset_mean)
             send_trigger(pub_socket, minimal_trigger)
-
+            outlet.push_sample([current_annotation])
+            
             minimal_trigger = new_trigger(curr_image, duration, local_time + stable_offset_mean)
             send_trigger(pub_socket, minimal_trigger)
+            outlet.push_sample([curr_image])
             
             pupil_time_align_val = request_pupil_time(pupil_remote)
+            outlet.push_sample([pupil_time_align_val])
             print(pupil_time_align_val, 'time align')
+
+            pupil_time_align_val = None
+            
             send_annotation_to_pupil = False
             if bookend_annotation:
                 current_annotation = ''
@@ -495,23 +313,23 @@ def collect_sensor_data():
             
         if exit_sensors:
             print("exiting sensor streams")
-            emotibit_server.shutdown()
             pupil_time_align_val = request_pupil_time(pupil_remote)
+            outlet.push_sample([pupil_time_align_val])
             print(pupil_time_align_val, 'time align')
-            pupil_remote.send_string("r")
-            pupil_remote.recv_string()
-            emotibit_save_data(emotibit_data_log)
             local_time = local_clock()
+            outlet.push_sample([current_annotation])
             minimal_trigger = new_trigger(current_annotation, duration, local_time + stable_offset_mean)
             send_trigger(pub_socket, minimal_trigger)
+            # Add custom keys to your annotation
+            pupil_time_align_val = None
             current_annotation = ''
 
             # stop recording
-            
+            pupil_remote.send_string("r")
+            pupil_remote.recv_string()
             pupil_remote.close()
             pub_socket.close()
             exit_sensors = False
-            # emotibit_thread.join()
             break
 
 
@@ -869,7 +687,7 @@ def experiment_gui():
     # global noise_stim
     global start_recording
     global stop_recording
-    global batch_recording
+    # global batch_recording
     global on_lab_comp
 
     # Load images
@@ -960,8 +778,8 @@ def experiment_gui():
     text = "End of practice sections. \n \n If you have questions, please ask the researcher. \n \n Press [1] to continue to the game break."
     instructions(win, text)
     
-    # Practice batch recording
-    batch_recording = True
+    # # Practice batch recording
+    # batch_recording = True
 
     game_break(win)
 
@@ -1002,7 +820,7 @@ def experiment_gui():
         # batch recording
         if i < 2:
             instructions(f'End of batch {i+1} out of 3. \n \n Press [1] to continue to game/relax break.')
-            batch_recording = True
+            # batch_recording = True
             game_break()
             relax_break()
         else:
@@ -1023,5 +841,13 @@ if __name__=='__main__':
     sensor_thread.start()
     
     experiment_gui()
-
     sensor_thread.join()
+
+# ,
+#       "lsl": {
+#         "marker": {
+#           "name": "DataSyncMarker",
+#           "sourceId": "12345"
+#         }
+#       }
+
