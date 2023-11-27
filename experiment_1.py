@@ -1,8 +1,8 @@
-from pythonosc import dispatcher, osc_server
+# from pythonosc import dispatcher, osc_server
 from threading import Thread
 import datetime
 import time
-import pandas as pd
+# import pandas as pd
 import os
 import zmq
 import msgpack as serializer
@@ -21,7 +21,7 @@ faulthandler.enable()
 #TODO: batches down to 24 images, 8 each
 
 # VARIABLES THAT CAN CHANGE - ADJUST THESE TO CHANGE THE EXPERIMENT
-on_lab_comp = True
+on_lab_comp = False
 EMOTIBIT_BUFFER_INTERVAL = 0.02  # 50hz, fastest datastream is 25Hz, can probably do 0.04
 data_save_location = 'data'
 subject_id = 'test_mona' #TODO: CHANGE THIS TO PID IN TABLE
@@ -33,6 +33,34 @@ emotibit_save_location = os.path.join('/Users/memeye/Desktop/memeye_data/raw', d
 info = StreamInfo(name='EmotibitDataSyncMarker', type='Tags', channel_count=1,
                       channel_format='string', source_id='12345')
 outlet = StreamOutlet(info)  # Broadcast the stream.
+
+mon = monitors.Monitor('testMonitor')  # Replace 'testMonitor' with the name of your monitor
+screen_width, screen_height = mon.getSizePix()
+print(mon.getSizePix())
+window_height = screen_height - 50  # Adjust this value to leave space for the taskbar/dock
+if not on_lab_comp:
+    win = visual.Window(
+        size=(1350, 740), 
+        pos=(0, 25),  # This centers the window vertically. Adjust as needed.
+        fullscr=False,  # Fullscreen is set to False
+        screen=0,
+        color=[0, 0, 0]
+    )
+else:
+    win = visual.Window(
+        fullscr=True,  # Fullscreen is set to False
+        screen=1,
+        color=[0, 0, 0]
+    )
+print(win.size)
+
+noise_texture = np.random.normal(loc=0.5, scale=0.3, size=(win.size[1], win.size[0])) # loc is the mean, scale is the standard deviation
+
+# Normalize the noise texture to be within the range [0, 1], as expected by PsychoPy
+noise_texture = (noise_texture - noise_texture.min()) / (noise_texture.max() - noise_texture.min())
+# Create an image stimulus from the RGB noise
+noise_stim = visual.ImageStim(win, image=noise_texture, size = win.size, units='pix')
+
 
 learning_time = 10  # Time each image is shown during learning phase (in seconds)
 recognition_time = 7
@@ -73,6 +101,7 @@ def check_capture_exists(ip_address, port):
             print("Found Pupil Capture")
         else:
             print("Cannot find Pupil Capture")
+            # raise Exception
             sys.exit()
 
 
@@ -240,7 +269,7 @@ def collect_sensor_data():
             pupil_remote.recv_string()
             outlet.push_sample(['starting pupil recording'])
             pupil_time_align_val = request_pupil_time(pupil_remote)
-            outlet.push_sample([pupil_time_align_val])
+            outlet.push_sample([str(pupil_time_align_val)])
             print(pupil_time_align_val, 'time align')
             start_recording = False
             pupil_time_align_val = None
@@ -257,7 +286,7 @@ def collect_sensor_data():
             
             pupil_time_align_val = request_pupil_time(pupil_remote)
             print(pupil_time_align_val, 'time align')
-            outlet.push_sample([pupil_time_align_val])
+            outlet.push_sample([str(pupil_time_align_val)])
             pupil_remote.send_string("r")
             pupil_remote.recv_string()
             stop_recording = False
@@ -266,7 +295,7 @@ def collect_sensor_data():
         if send_subject_response:
             local_time = local_clock()
             pupil_time_align_val = request_pupil_time(pupil_remote)
-            outlet.push_sample([pupil_time_align_val])
+            outlet.push_sample([str(pupil_time_align_val)])
             print(pupil_time_align_val, 'time align')
             pupil_time_align_val = None
             print(subject_response, subject_confidence)
@@ -289,7 +318,7 @@ def collect_sensor_data():
             local_time = local_clock()
             print('sending this annotation label')
             pupil_time_align_val = request_pupil_time(pupil_remote)
-            outlet.push_sample([pupil_time_align_val])
+            outlet.push_sample([str(pupil_time_align_val)])
             print(pupil_time_align_val, 'time align')
             
             minimal_trigger = new_trigger(current_annotation, duration, local_time + stable_offset_mean)
@@ -300,9 +329,9 @@ def collect_sensor_data():
             send_trigger(pub_socket, minimal_trigger)
             outlet.push_sample([curr_image])
             
-            pupil_time_align_val = request_pupil_time(pupil_remote)
-            outlet.push_sample([pupil_time_align_val])
-            print(pupil_time_align_val, 'time align')
+            # pupil_time_align_val = request_pupil_time(pupil_remote)
+            # outlet.push_sample([str(pupil_time_align_val)])
+            # print(pupil_time_align_val, 'time align')
 
             pupil_time_align_val = None
             
@@ -316,7 +345,7 @@ def collect_sensor_data():
         if exit_sensors:
             print("exiting sensor streams")
             pupil_time_align_val = request_pupil_time(pupil_remote)
-            outlet.push_sample([pupil_time_align_val])
+            outlet.push_sample([str(pupil_time_align_val)])
             print(pupil_time_align_val, 'time align')
             local_time = local_clock()
             outlet.push_sample([current_annotation])
@@ -337,9 +366,9 @@ def collect_sensor_data():
             break
 
 
-def learning_phase(win, noise_stim, images, practice = False):
-    # global win
-    # global noise_stim
+def learning_phase(images, practice = False):
+    global win
+    global noise_stim
     global learning_time
     global break_time
     global current_annotation
@@ -391,9 +420,9 @@ def learning_phase(win, noise_stim, images, practice = False):
         core.wait(break_time)
 
 
-def recognition_phase(win, noise_stim, shown_images, extra_images, repeats = False, ratio_shown = 1, practice = False):
-    # global win
-    # global noise_stim
+def recognition_phase(shown_images, extra_images, repeats = False, ratio_shown = 1, practice = False):
+    global win
+    global noise_stim
     global recognition_time
     global break_time
     global current_annotation
@@ -458,7 +487,7 @@ def recognition_phase(win, noise_stim, shown_images, extra_images, repeats = Fal
         curr_image = img_name
         send_annotation_to_pupil = True
         win.flip()
-        core.wait(1)
+        core.wait(0.5)
         keys = event.waitKeys(keyList=['1', '2', 'num_1', 'num_2', 'escape'], timeStamped=timer)
         if keys:
             key, reaction_time = keys[0]
@@ -478,7 +507,7 @@ def recognition_phase(win, noise_stim, shown_images, extra_images, repeats = Fal
                                     pos=(0,0), color=(1, 1, 1))
         text_stim.draw()
         win.flip()
-        core.wait(1)
+        core.wait(0.5)
         keys = event.waitKeys(keyList=['1', '2', 'num_1', 'num_2', 'escape'], timeStamped=timer)
         if keys:
             key, reaction_time = keys[0]
@@ -502,9 +531,9 @@ def recognition_phase(win, noise_stim, shown_images, extra_images, repeats = Fal
             core.quit()
 
 
-def recall_phase(win, noise_stim, images_to_show, extra_images, recall_type, practice = False):
-    # global win
-    # global noise_stim
+def recall_phase(images_to_show, extra_images, recall_type, practice = False):
+    global win
+    global noise_stim
     global recall_time
     global recall_verbal_time
     global break_time
@@ -574,7 +603,7 @@ def recall_phase(win, noise_stim, images_to_show, extra_images, recall_type, pra
         curr_image = img_name
         send_annotation_to_pupil = True
         win.flip()
-        core.wait(1)
+        core.wait(0.5)
         keys = event.waitKeys(keyList=['1', '2', 'num_1', 'num_2', 'escape'], timeStamped=timer)
         if keys:
             key, reaction_time = keys[0]
@@ -591,7 +620,7 @@ def recall_phase(win, noise_stim, images_to_show, extra_images, recall_type, pra
                                     pos=(0,0), color=(1, 1, 1))
         text_stim.draw()
         win.flip()
-        core.wait(1)
+        core.wait(0.5)
         keys = event.waitKeys(keyList=['1', '2', 'num_1', 'num_2', 'escape'], timeStamped=timer)
         if keys:
             key, reaction_time = keys[0]
@@ -630,16 +659,16 @@ def recall_phase(win, noise_stim, images_to_show, extra_images, recall_type, pra
         if 'escape' in keys:
             core.quit()
 
-def instructions(win, text):
-    # global win
+def instructions(text):
+    global win
     text_stim = visual.TextStim(win, text=text, pos=(0,0), color=(1, 1, 1))
     text_stim.draw()
     win.flip()
-    core.wait(1)
+    core.wait(0.5)
     event.waitKeys(keyList=['1', 'num_1'])
 
-def game_break(win):
-    # global win
+def game_break():
+    global win
     global current_annotation
     global send_annotation_to_pupil
     global bookend_annotation
@@ -656,11 +685,11 @@ def game_break(win):
     text_stim = visual.TextStim(win, text="When you are ready, press [1] to continue", pos=(0,0), color=(1, 1, 1))
     text_stim.draw()
     win.flip()
-    core.wait(1)
+    core.wait(0.5)
     event.waitKeys(keyList=['1', 'num_1'])
 
-def relax_break(win):
-    # global win
+def relax_break():
+    global win
     global current_annotation
     global send_annotation_to_pupil
     global bookend_annotation
@@ -677,22 +706,27 @@ def relax_break(win):
     text_stim = visual.TextStim(win, text="When you are ready, press [1] to continue", pos=(0,0), color=(1, 1, 1))
     text_stim.draw()
     win.flip()
-    core.wait(1)
+    core.wait(0.5)
     event.waitKeys(keyList=['1', 'num_1'])
 
 
 def experiment_gui():
     global exp_1_shown_images_dir
     global exp_1_extra_images_dir
-    # global win
+    global win
     global start_recording
     global stop_recording
     global exit_sensors
-    # global noise_stim
+    global noise_stim
     global start_recording
     global stop_recording
     # global batch_recording
     global on_lab_comp
+    global outlet
+
+    for _ in range(5):
+        outlet.push_sample(['test'])
+        core.wait(0.5)
 
     # Load images
     shown_images = [os.path.join(exp_1_shown_images_dir, img) for img in os.listdir(exp_1_shown_images_dir) if img.endswith('.jpg')]
@@ -715,80 +749,52 @@ def experiment_gui():
     # shown_images_batches = [shown_images[:11], shown_images[11:22], shown_images[22:]]
     # extra_images_batches = [extra_images[:4], extra_images[4:8], extra_images[8:]]
 
-    mon = monitors.Monitor('testMonitor')  # Replace 'testMonitor' with the name of your monitor
-    screen_width, screen_height = mon.getSizePix()
-    print(mon.getSizePix())
-    window_height = screen_height - 50  # Adjust this value to leave space for the taskbar/dock
-    if not on_lab_comp:
-        win = visual.Window(
-            size=(1350, 740), 
-            pos=(0, 25),  # This centers the window vertically. Adjust as needed.
-            fullscr=False,  # Fullscreen is set to False
-            screen=0,
-            color=[0, 0, 0]
-        )
-    else:
-        win = visual.Window(
-            fullscr=True,  # Fullscreen is set to False
-            screen=1,
-            color=[0, 0, 0]
-        )
-    print(win.size)
-
-    noise_texture = np.random.normal(loc=0.5, scale=0.3, size=(win.size[1], win.size[0])) # loc is the mean, scale is the standard deviation
-
-    # Normalize the noise texture to be within the range [0, 1], as expected by PsychoPy
-    noise_texture = (noise_texture - noise_texture.min()) / (noise_texture.max() - noise_texture.min())
-    # Create an image stimulus from the RGB noise
-    noise_stim = visual.ImageStim(win, image=noise_texture, size = win.size, units='pix')
-
-
     # Run experiment
     start_recording = True
 
     # baseline
     # text = "Before we begin, please relax and try to keep still while looking at the screen. \n\n  This part will be three minutes. \n \n Press [1] to continue." 
-    # instructions(win, text)
+    # instructions(text)
     # noise_stim.draw()
     # win.flip()
     # core.wait(180)
     # practice phases are all here
     text = "We will now begin the practice section. \n \n Press [1] to continue."
-    instructions(win, text)
+    instructions(text)
     text = f"This study will consist of several sections that involve looking at images of faces. \n \n You will be asked to try to remember as many details as you can and answer questions later. \n \n Press [1] to continue. "
-    instructions(win, text)
+    instructions(text)
 
     text = f"We will now begin a practice learning phase of the experiment. \n \n Press [1] to continue"
-    instructions(win, text)
+    instructions(text)
     text = "Instructions: \n \n You will be shown a sequence of images with the person's name and related facts. \n \n Please keep your attention on the screen and remember as many details as possible for each person. \n \n You will be tested on how much you remember after this. \n \n It will automatically move forward to the next part. \n \n Press [1] to continue."
-    instructions(win, text)
-    learning_phase(win, noise_stim, practice_images, practice = True)
+    instructions(text)
+    learning_phase(practice_images, practice = True)
     text = "End of practice learning phase. \n \n Take a quick break, ask any questions. \n \n Press [1] to continue."
 
     #practice recognition phase
-    instructions(win, f"We will now begin a practice recognition phase of the experiment. \n \n Press [1] to continue")
+    instructions(f"We will now begin a practice recognition phase of the experiment. \n \n Press [1] to continue")
     text = f"Instructions: \n \n You will be shown a sequence of images. \n \n Please keep your attention on the screen at all times. \n \n When you see the image, your job is just to look at it - it will automatically move forward to the next part. \n \n Press [1] to continue."
-    instructions(win, text)
-    recognition_phase(win, noise_stim, practice_images, [], repeats = False, ratio_shown = 1, practice=True)
-    instructions(win, 'End of practice recognition phase. \n \n Take a quick break, ask any questions. \n \n Press [1] to continue.')
+    instructions(text)
+    recognition_phase(practice_images, [], repeats = False, ratio_shown = 1, practice=True)
+    instructions('End of practice recognition phase. \n \n Take a quick break, ask any questions. \n \n Press [1] to continue.')
 
     #practice names phase
-    instructions(win, f"We will now begin a practice names phase of the experiment. \n \n Press [1] to continue")
+    instructions(f"We will now begin a practice names phase of the experiment. \n \n Press [1] to continue")
     text = f"Instructions: \n \n You will be shown a sequence of images. \n \n Please keep your attention on the screen at all times. \n \n When you see the image, your job is just to look at it - it will automatically move forward to the next part. \n \n Press [1] to continue."
-    instructions(win, text)
-    recall_phase(win, noise_stim, practice_images, [], 'name', practice=True)
-    instructions(win, 'End of practice names phase. \n \n  Take a quick break, ask any questions. \n \n Press [1] to continue.')
+    instructions(text)
+    recall_phase(practice_images, [], 'name', practice=True)
+    instructions('End of practice names phase. \n \n  Take a quick break, ask any questions. \n \n Press [1] to continue.')
 
     text = "End of practice sections. \n \n If you have questions, please ask the researcher. \n \n Press [1] to continue to the game break."
-    instructions(win, text)
+    instructions(text)
     
     # # Practice batch recording
     # batch_recording = True
 
-    game_break(win)
+    game_break()
 
     text = "We will now begin the main experiment. \n \n Press [1] to continue."
-    instructions(win, text)
+    instructions(text)
 
     # for i in range(3):
 
@@ -797,41 +803,41 @@ def experiment_gui():
 
     #     # Phase 1: Learning
     #     text = f"We will now begin the learning phase of the experiment (Batch {i+1} out of 3). \n \n Press [1] to continue"
-    #     instructions(win, text)
+    #     instructions(text)
     #     text = "Instructions: \n \n You will be shown a sequence of images with the person's name and related facts. \n \n Please keep your attention on the screen and remember as many details as possible for each person. \n \n You will be tested on how much you remember after this. \n \n It will automatically move forward to the next part. \n \n Press [1] to continue."
-    #     instructions(win, text)
-    #     learning_phase(win, noise_stim, shown_images)
-    #     instructions(win, 'End of learning phase. \n \n Press [1] to continue to the game break.')
-    #     game_break(win)
+    #     instructions(text)
+    #     learning_phase(shown_images)
+    #     instructions('End of learning phase. \n \n Press [1] to continue to the game break.')
+    #     game_break()
 
     #     # Phase 2: Recognition  
     #     text = f"We will now begin the recognition phase of the experiment (Batch {i+1} out of 3). \n \n Press [1] to continue"
-    #     instructions(win, text)
+    #     instructions(text)
     #     text = f"Instructions: \n \n You will be shown a sequence of images. \n \n When you see the image, your job is just to look at it - it will automatically move forward to the next part. \n \n Press [1] to continue."
-    #     instructions(win, text)
-    #     recognition_phase(win, noise_stim, shown_images, extra_images, repeats = False, ratio_shown = 1)
-    #     instructions(win, 'End of recognition phase. \n \n Press [1] to continue to the game break.')
-    #     game_break(win)
+    #     instructions(text)
+    #     recognition_phase(shown_images, extra_images, repeats = False, ratio_shown = 1)
+    #     instructions('End of recognition phase. \n \n Press [1] to continue to the game break.')
+    #     game_break()
 
     #     # Phase 3: Names
     #     text = f"We will now begin the names phase of the experiment (Batch {i+1} out of 3). \n \n Press [1] to continue"
-    #     instructions(win, text)
+    #     instructions(text)
     #     text = f"Instructions: \n \n You will be shown a sequence of images. \n \n Please keep your attention on the screen at all times. \n \n When you see the image, your job is just to look at it - it will automatically move forward to the next part. \n \n Press [1] to continue."
-    #     instructions(win, text)
-    #     recall_phase(win, noise_stim, shown_images, [], 'name')
-    #     instructions(win, 'End of names phase. \n \n Press [1] to continue.')
+    #     instructions(text)
+    #     recall_phase(shown_images, [], 'name')
+    #     instructions('End of names phase. \n \n Press [1] to continue.')
 
     #     # batch recording
     #     if i < 2:
-    #         instructions(win, f'End of batch {i+1} out of 3. \n \n Press [1] to continue to game/relax break.')
+    #         instructions(f'End of batch {i+1} out of 3. \n \n Press [1] to continue to game/relax break.')
     #         # batch_recording = True
-    #         game_break(win)
-    #         relax_break(win)
+    #         game_break()
+    #         relax_break()
     #     else:
-    #         instructions(win, f'End of batch {i+1} out of 3. \n \n Press [1] to continue.')
+    #         instructions(f'End of batch {i+1} out of 3. \n \n Press [1] to continue.')
 
     exit_sensors = True
-    instructions(win, f"We have now completed the experiment. \n \n Press [1] to exit")
+    instructions(f"We have now completed the experiment. \n \n Press [1] to exit")
     win.close()
     # core.quit()
 
@@ -854,4 +860,12 @@ if __name__=='__main__':
 #           "sourceId": "12345"
 #         }
 #       }
+
+        # // "unicast": {
+        # //   "enabled": true,
+        # //   "ipMax": 254,
+        # //   "ipMin": 2,
+        # //   "nUnicastIpsPerLoop": 1,
+        # //   "unicastMinLoopDelay_msec": 3
+        # // }
 
