@@ -73,12 +73,8 @@ exp_1_extra_images_dir = './experiment_1_images/people/extra/'
 exp_1_practice_images_dir = './experiment_1_images/people/practice/'
 
 record_num = 0
-emotibit_latest_osc_data = None
-emotibit_last_collect_time = time.time()
 current_annotation = ''
-emotibit_collect_data = False
-emotibit_test_output = False
-emotibit_data_log = []
+send_time_to_emotibit = False
 pupil_time_align_val = None
 curr_image = ''
 subject_response = ''
@@ -224,6 +220,7 @@ def collect_sensor_data():
     global date_time
     global subject_save_location
     global outlet
+    global send_time_to_emotibit
 
     pupil_ip, pupil_port = "127.0.0.1", 50020
 
@@ -267,7 +264,6 @@ def collect_sensor_data():
             message = f'R {full_path}'
             pupil_remote.send_string(message)
             pupil_remote.recv_string()
-            outlet.push_sample(['starting pupil recording'])
             pupil_time_align_val = request_pupil_time(pupil_remote)
             outlet.push_sample([str(pupil_time_align_val)])
             print(pupil_time_align_val, 'time align')
@@ -280,7 +276,6 @@ def collect_sensor_data():
                 local_time = local_clock()
                 minimal_trigger = new_trigger(current_annotation, duration, local_time + stable_offset_mean)
                 send_trigger(pub_socket, minimal_trigger)
-                outlet.push_sample([current_annotation])
                 # Add custom keys to your annotation
                 current_annotation = ''
             
@@ -295,7 +290,6 @@ def collect_sensor_data():
         if send_subject_response:
             local_time = local_clock()
             pupil_time_align_val = request_pupil_time(pupil_remote)
-            outlet.push_sample([str(pupil_time_align_val)])
             print(pupil_time_align_val, 'time align')
             pupil_time_align_val = None
             print(subject_response, subject_confidence)
@@ -303,35 +297,33 @@ def collect_sensor_data():
             if subject_response != '':
                 minimal_trigger = new_trigger(subject_response, duration, local_time + stable_offset_mean)
                 send_trigger(pub_socket, minimal_trigger)
-                outlet.push_sample([subject_response])
                 
             if subject_confidence != '':
                 minimal_trigger = new_trigger(subject_confidence, duration, local_time + stable_offset_mean)
                 send_trigger(pub_socket, minimal_trigger)
-                outlet.push_sample([subject_confidence])
 
             send_subject_response = False
             subject_response = ''
             subject_confidence = ''
+        
+        if send_time_to_emotibit:
+            pupil_time_align_val = request_pupil_time(pupil_remote)
+            outlet.push_sample([str(pupil_time_align_val)])
+            print(pupil_time_align_val, 'time align')
+            pupil_time_align_val = None
+            send_time_to_emotibit = False
             
         if send_annotation_to_pupil:
             local_time = local_clock()
             print('sending this annotation label')
             pupil_time_align_val = request_pupil_time(pupil_remote)
-            outlet.push_sample([str(pupil_time_align_val)])
             print(pupil_time_align_val, 'time align')
             
             minimal_trigger = new_trigger(current_annotation, duration, local_time + stable_offset_mean)
             send_trigger(pub_socket, minimal_trigger)
-            outlet.push_sample([current_annotation])
             
             minimal_trigger = new_trigger(curr_image, duration, local_time + stable_offset_mean)
             send_trigger(pub_socket, minimal_trigger)
-            outlet.push_sample([curr_image])
-            
-            # pupil_time_align_val = request_pupil_time(pupil_remote)
-            # outlet.push_sample([str(pupil_time_align_val)])
-            # print(pupil_time_align_val, 'time align')
 
             pupil_time_align_val = None
             
@@ -348,7 +340,6 @@ def collect_sensor_data():
             outlet.push_sample([str(pupil_time_align_val)])
             print(pupil_time_align_val, 'time align')
             local_time = local_clock()
-            outlet.push_sample([current_annotation])
             minimal_trigger = new_trigger(current_annotation, duration, local_time + stable_offset_mean)
             send_trigger(pub_socket, minimal_trigger)
             # Add custom keys to your annotation
@@ -361,7 +352,6 @@ def collect_sensor_data():
             pupil_remote.recv_string()
             pupil_remote.close()
             pub_socket.close()
-            outlet.__del__()
             exit_sensors = False
             break
 
@@ -676,7 +666,7 @@ def game_break():
     text_stim = visual.TextStim(win, text="1 Minute Game Break", pos=(0,0), color=(1, 1, 1))
     text_stim.draw()
     win.flip()
-    current_annotation = f'game break'
+    current_annotation = 'game break'
     send_annotation_to_pupil = True
     core.wait(60)
     bookend_annotation = True
@@ -720,9 +710,9 @@ def experiment_gui():
     global noise_stim
     global start_recording
     global stop_recording
-    # global batch_recording
     global on_lab_comp
     global outlet
+    global send_time_to_emotibit
 
     for _ in range(5):
         outlet.push_sample(['test'])
@@ -787,6 +777,8 @@ def experiment_gui():
 
     text = "End of practice sections. \n \n If you have questions, please ask the researcher. \n \n Press [1] to continue to the game break."
     instructions(text)
+    outlet.push_sample(['end of practice'])
+    send_time_to_emotibit = True
     
     # # Practice batch recording
     # batch_recording = True
@@ -796,45 +788,49 @@ def experiment_gui():
     text = "We will now begin the main experiment. \n \n Press [1] to continue."
     instructions(text)
 
-    # for i in range(3):
+    for i in range(3):
+        outlet.push_sample([f'start of batch {i+1} out of 3'])
+        send_time_to_emotibit = True
 
-    #     shown_images = shown_images_batches[i]
-    #     extra_images = extra_images_batches[i]
+        shown_images = shown_images_batches[i]
+        extra_images = extra_images_batches[i]
 
-    #     # Phase 1: Learning
-    #     text = f"We will now begin the learning phase of the experiment (Batch {i+1} out of 3). \n \n Press [1] to continue"
-    #     instructions(text)
-    #     text = "Instructions: \n \n You will be shown a sequence of images with the person's name and related facts. \n \n Please keep your attention on the screen and remember as many details as possible for each person. \n \n You will be tested on how much you remember after this. \n \n It will automatically move forward to the next part. \n \n Press [1] to continue."
-    #     instructions(text)
-    #     learning_phase(shown_images)
-    #     instructions('End of learning phase. \n \n Press [1] to continue to the game break.')
-    #     game_break()
+        # Phase 1: Learning
+        text = f"We will now begin the learning phase of the experiment (Batch {i+1} out of 3). \n \n Press [1] to continue"
+        instructions(text)
+        text = "Instructions: \n \n You will be shown a sequence of images with the person's name and related facts. \n \n Please keep your attention on the screen and remember as many details as possible for each person. \n \n You will be tested on how much you remember after this. \n \n It will automatically move forward to the next part. \n \n Press [1] to continue."
+        instructions(text)
+        learning_phase(shown_images)
+        instructions('End of learning phase. \n \n Press [1] to continue to the game break.')
+        game_break()
 
-    #     # Phase 2: Recognition  
-    #     text = f"We will now begin the recognition phase of the experiment (Batch {i+1} out of 3). \n \n Press [1] to continue"
-    #     instructions(text)
-    #     text = f"Instructions: \n \n You will be shown a sequence of images. \n \n When you see the image, your job is just to look at it - it will automatically move forward to the next part. \n \n Press [1] to continue."
-    #     instructions(text)
-    #     recognition_phase(shown_images, extra_images, repeats = False, ratio_shown = 1)
-    #     instructions('End of recognition phase. \n \n Press [1] to continue to the game break.')
-    #     game_break()
+        # Phase 2: Recognition  
+        text = f"We will now begin the recognition phase of the experiment (Batch {i+1} out of 3). \n \n Press [1] to continue"
+        instructions(text)
+        text = f"Instructions: \n \n You will be shown a sequence of images. \n \n When you see the image, your job is just to look at it - it will automatically move forward to the next part. \n \n Press [1] to continue."
+        instructions(text)
+        recognition_phase(shown_images, extra_images, repeats = False, ratio_shown = 1)
+        instructions('End of recognition phase. \n \n Press [1] to continue to the game break.')
+        game_break()
 
-    #     # Phase 3: Names
-    #     text = f"We will now begin the names phase of the experiment (Batch {i+1} out of 3). \n \n Press [1] to continue"
-    #     instructions(text)
-    #     text = f"Instructions: \n \n You will be shown a sequence of images. \n \n Please keep your attention on the screen at all times. \n \n When you see the image, your job is just to look at it - it will automatically move forward to the next part. \n \n Press [1] to continue."
-    #     instructions(text)
-    #     recall_phase(shown_images, [], 'name')
-    #     instructions('End of names phase. \n \n Press [1] to continue.')
+        # Phase 3: Names
+        text = f"We will now begin the names phase of the experiment (Batch {i+1} out of 3). \n \n Press [1] to continue"
+        instructions(text)
+        text = f"Instructions: \n \n You will be shown a sequence of images. \n \n Please keep your attention on the screen at all times. \n \n When you see the image, your job is just to look at it - it will automatically move forward to the next part. \n \n Press [1] to continue."
+        instructions(text)
+        recall_phase(shown_images, [], 'name')
+        instructions('End of names phase. \n \n Press [1] to continue.')
 
-    #     # batch recording
-    #     if i < 2:
-    #         instructions(f'End of batch {i+1} out of 3. \n \n Press [1] to continue to game/relax break.')
-    #         # batch_recording = True
-    #         game_break()
-    #         relax_break()
-    #     else:
-    #         instructions(f'End of batch {i+1} out of 3. \n \n Press [1] to continue.')
+        # batch recording
+        outlet.push_sample([f'end of batch {i+1} out of 3'])
+        send_time_to_emotibit = True
+        if i < 2:
+            instructions(f'End of batch {i+1} out of 3. \n \n Press [1] to continue to game/relax break.')
+            # batch_recording = True
+            game_break()
+            relax_break()
+        else:
+            instructions(f'End of batch {i+1} out of 3. \n \n Press [1] to continue.')
 
     exit_sensors = True
     instructions(f"We have now completed the experiment. \n \n Press [1] to exit")
