@@ -1,8 +1,6 @@
-# from pythonosc import dispatcher, osc_server
 from threading import Thread
 import datetime
 import time
-# import pandas as pd
 import os
 import zmq
 import msgpack as serializer
@@ -18,17 +16,14 @@ from pylsl import StreamInfo, StreamOutlet
 from psychopy import visual, core, event, monitors #, sound
 faulthandler.enable()
 
-#TODO: batches down to 24 images, 8 each
+# TODO: make sure instructions make sense
 
 # VARIABLES THAT CAN CHANGE - ADJUST THESE TO CHANGE THE EXPERIMENT
 on_lab_comp = True
-EMOTIBIT_BUFFER_INTERVAL = 0.02  # 50hz, fastest datastream is 25Hz, can probably do 0.04
 data_save_location = 'data'
 subject_id = 'test_mona' #TODO: CHANGE THIS TO PID IN TABLE
-experiment_num = 1
 date_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 subject_save_location = os.path.join('./', data_save_location, subject_id, date_time)
-emotibit_save_location = os.path.join('/Users/memeye/Desktop/memeye_data/raw', data_save_location, subject_id, date_time) if on_lab_comp else subject_save_location
 
 info = StreamInfo(name='EmotibitDataSyncMarker', type='Tags', channel_count=1,
                       channel_format='string', source_id='12345')
@@ -82,7 +77,6 @@ subject_confidence = ''
 
 start_recording = False
 stop_recording = False
-# batch_recording = False
 send_annotation_to_pupil = False
 exit_sensors = False
 bookend_annotation = False
@@ -258,7 +252,7 @@ def collect_sensor_data():
             print('starting recording session')
             date_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
             subject_save_location = os.path.join('./', data_save_location, subject_id, date_time)
-            full_path = os.path.join(subject_save_location, f'experiment_{experiment_num}')
+            full_path = os.path.join(subject_save_location, 'experiment_1')
             if not os.path.exists(full_path):
                 os.makedirs(full_path)
             message = f'R {full_path}'
@@ -534,7 +528,6 @@ def recall_phase(images_to_show, extra_images, recall_type, practice = False):
     global subject_response
     global subject_confidence
     global send_subject_response
-    global experiment_num
 
     images = images_to_show + extra_images
     random.shuffle(images)
@@ -727,27 +720,31 @@ def experiment_gui():
     random.shuffle(extra_images)
 
     # TESTING VARS
-    shown_images_batches = [shown_images[:1], shown_images[1:2], shown_images[2:3]]
-    extra_images_batches = [extra_images[:1], extra_images[1:2], extra_images[2:3]]
+    # shown_images_batches = [shown_images[:1], shown_images[1:2], shown_images[2:3]]
+    # extra_images_batches = [extra_images[:1], extra_images[1:2], extra_images[2:3]]
 
-    # shown_images = random.sample(shown_images, 33)
-    # extra_images = random.sample(extra_images, 12)
+    shown_images = random.sample(shown_images, 33)
+    extra_images = random.sample(extra_images, 12)
 
-    # random.shuffle(shown_images)
-    # random.shuffle(extra_images)
+    random.shuffle(shown_images)
+    random.shuffle(extra_images)
 
-    # shown_images_batches = [shown_images[:11], shown_images[11:22], shown_images[22:]]
-    # extra_images_batches = [extra_images[:4], extra_images[4:8], extra_images[8:]]
+    shown_images_batches = [shown_images[:11], shown_images[11:22], shown_images[22:]]
+    extra_images_batches = [extra_images[:4], extra_images[4:8], extra_images[8:]]
 
     # Run experiment
     start_recording = True
 
     # baseline
-    # text = "Before we begin, please relax and try to keep still while looking at the screen. \n\n  This part will be three minutes. \n \n Press [1] to continue." 
-    # instructions(text)
-    # noise_stim.draw()
-    # win.flip()
-    # core.wait(180)
+    text = "Before we begin, please relax and try to keep still while looking at the screen. \n\n  This part will be three minutes. \n \n Press [1] to continue." 
+    outlet.push_sample(['baseline'])
+    send_time_to_emotibit = True
+    instructions(text)
+    noise_stim.draw()
+    win.flip()
+    core.wait(180)
+    outlet.push_sample(['end of baseline'])
+    send_time_to_emotibit = True
     # practice phases are all here
     text = "We will now begin the practice section. \n \n Press [1] to continue."
     instructions(text)
@@ -780,9 +777,6 @@ def experiment_gui():
     outlet.push_sample(['end of practice'])
     send_time_to_emotibit = True
     
-    # # Practice batch recording
-    # batch_recording = True
-
     game_break()
 
     text = "We will now begin the main experiment. \n \n Press [1] to continue."
