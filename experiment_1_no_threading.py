@@ -225,10 +225,8 @@ def learning_phase(pub_socket, images, practice = False):
         local_time = local_clock()
         minimal_trigger = new_trigger(current_annotation, 0.0, local_time + stable_offset_mean)
         send_trigger(pub_socket, minimal_trigger)
-        outlet.push_sample([current_annotation])
         minimal_trigger = new_trigger(curr_image, 0.0, local_time + stable_offset_mean)
         send_trigger(pub_socket, minimal_trigger)
-        outlet.push_sample([curr_image])
 
         image.draw()
         text_stim = visual.TextStim(win, text=text, pos=(0, -0.7), color=(1, 1, 1))
@@ -244,10 +242,8 @@ def learning_phase(pub_socket, images, practice = False):
         local_time = local_clock()
         minimal_trigger = new_trigger(current_annotation, 0.0, local_time + stable_offset_mean)
         send_trigger(pub_socket, minimal_trigger)
-        outlet.push_sample([current_annotation])
         minimal_trigger = new_trigger(curr_image, 0.0, local_time + stable_offset_mean)
         send_trigger(pub_socket, minimal_trigger)
-        outlet.push_sample([curr_image])
         # Break between images (only during learning phase)
         noise_stim.draw()
         win.flip()
@@ -300,10 +296,8 @@ def recognition_phase(pub_socket, shown_images, extra_images, repeats = False, r
         local_time = local_clock()
         minimal_trigger = new_trigger(current_annotation, 0.0, local_time + stable_offset_mean)
         send_trigger(pub_socket, minimal_trigger)
-        outlet.push_sample([current_annotation])
         minimal_trigger = new_trigger(curr_image, 0.0, local_time + stable_offset_mean)
         send_trigger(pub_socket, minimal_trigger)
-        outlet.push_sample([curr_image])
         
         # Wait for response or timeout
         timer = core.Clock()
@@ -315,10 +309,8 @@ def recognition_phase(pub_socket, shown_images, extra_images, repeats = False, r
         local_time = local_clock()
         minimal_trigger = new_trigger(current_annotation, 0.0, local_time + stable_offset_mean)
         send_trigger(pub_socket, minimal_trigger)
-        outlet.push_sample([current_annotation])
         minimal_trigger = new_trigger(curr_image, 0.0, local_time + stable_offset_mean)
         send_trigger(pub_socket, minimal_trigger)
-        outlet.push_sample([curr_image])
         
 
         text_stim = visual.TextStim(win, text="Do you recognize this face? \n \n (1: Yes, 2: No)", 
@@ -332,10 +324,8 @@ def recognition_phase(pub_socket, shown_images, extra_images, repeats = False, r
         local_time = local_clock()
         minimal_trigger = new_trigger(current_annotation, 0.0, local_time + stable_offset_mean)
         send_trigger(pub_socket, minimal_trigger)
-        outlet.push_sample([current_annotation])
         minimal_trigger = new_trigger(curr_image, 0.0, local_time + stable_offset_mean)
         send_trigger(pub_socket, minimal_trigger)
-        outlet.push_sample([curr_image])
 
         win.flip()
         core.wait(0.5)
@@ -349,14 +339,12 @@ def recognition_phase(pub_socket, shown_images, extra_images, repeats = False, r
                 local_time = local_clock()
                 minimal_trigger = new_trigger(subject_response, 0.0, local_time + stable_offset_mean)
                 send_trigger(pub_socket, minimal_trigger)
-                outlet.push_sample([subject_response])
             elif key == '2'or key == 'num_2':
                 print('No')
                 subject_response = 'No'
                 local_time = local_clock()
                 minimal_trigger = new_trigger(subject_response, 0.0, local_time + stable_offset_mean)
                 send_trigger(pub_socket, minimal_trigger)
-                outlet.push_sample([subject_response])
             if key == 'escape':
                 core.quit()
 
@@ -373,23 +361,19 @@ def recognition_phase(pub_socket, shown_images, extra_images, repeats = False, r
                 local_time = local_clock()
                 minimal_trigger = new_trigger(subject_confidence, 0.0, local_time + stable_offset_mean)
                 send_trigger(pub_socket, minimal_trigger)
-                outlet.push_sample([subject_confidence])
             elif key == '2'or key == 'num_2':
                 subject_confidence = 'Low'
                 local_time = local_clock()
                 minimal_trigger = new_trigger(subject_confidence, 0.0, local_time + stable_offset_mean)
                 send_trigger(pub_socket, minimal_trigger)
-                outlet.push_sample([subject_confidence])
             if key == 'escape':
                 core.quit()
         
         local_time = local_clock()
         minimal_trigger = new_trigger(current_annotation, 0.0, local_time + stable_offset_mean)
         send_trigger(pub_socket, minimal_trigger)
-        outlet.push_sample([current_annotation])
         minimal_trigger = new_trigger(curr_image, 0.0, local_time + stable_offset_mean)
         send_trigger(pub_socket, minimal_trigger)
-        outlet.push_sample([curr_image])
 
         noise_stim.draw()
         win.flip()
@@ -448,10 +432,8 @@ def recall_phase(pub_socket, images_to_show, extra_images, recall_type, practice
         local_time = local_clock()
         minimal_trigger = new_trigger(current_annotation, 0.0, local_time + stable_offset_mean)
         send_trigger(pub_socket, minimal_trigger)
-        outlet.push_sample([current_annotation])
         minimal_trigger = new_trigger(curr_image, 0.0, local_time + stable_offset_mean)
         send_trigger(pub_socket, minimal_trigger)
-        outlet.push_sample([curr_image])
     
         # Wait for response or timeout
         timer = core.Clock()
@@ -463,10 +445,8 @@ def recall_phase(pub_socket, images_to_show, extra_images, recall_type, practice
         local_time = local_clock()
         minimal_trigger = new_trigger(current_annotation, 0.0, local_time + stable_offset_mean)
         send_trigger(pub_socket, minimal_trigger)
-        outlet.push_sample([current_annotation])
         minimal_trigger = new_trigger(curr_image, 0.0, local_time + stable_offset_mean)
         send_trigger(pub_socket, minimal_trigger)
-        outlet.push_sample([curr_image])
         
         if recall_type == 'name':
             text = "Do you remember this person's first name (or anything else about them)? \n \n (1: Yes, 2: No)"
@@ -486,13 +466,11 @@ def recall_phase(pub_socket, images_to_show, extra_images, recall_type, practice
                 local_time = local_clock()
                 minimal_trigger = new_trigger(subject_response, 0.0, local_time + stable_offset_mean)
                 send_trigger(pub_socket, minimal_trigger)
-                outlet.push_sample([subject_response])
             elif key == '2'or key == 'num_2':
                 subject_response = 'No'
                 local_time = local_clock()
                 minimal_trigger = new_trigger(subject_response, 0.0, local_time + stable_offset_mean)
                 send_trigger(pub_socket, minimal_trigger)
-                outlet.push_sample([subject_response])
             if key == 'escape':
                 core.quit()
         
@@ -509,13 +487,11 @@ def recall_phase(pub_socket, images_to_show, extra_images, recall_type, practice
                 local_time = local_clock()
                 minimal_trigger = new_trigger(subject_confidence, 0.0, local_time + stable_offset_mean)
                 send_trigger(pub_socket, minimal_trigger)
-                outlet.push_sample([subject_confidence])
             elif key == '2'or key == 'num_2':
                 subject_confidence = 'Low'
                 local_time = local_clock()
                 minimal_trigger = new_trigger(subject_confidence, 0.0, local_time + stable_offset_mean)
                 send_trigger(pub_socket, minimal_trigger)
-                outlet.push_sample([subject_confidence])
             if key == 'escape':
                 core.quit()
 
@@ -523,10 +499,8 @@ def recall_phase(pub_socket, images_to_show, extra_images, recall_type, practice
         local_time = local_clock()
         minimal_trigger = new_trigger(current_annotation, 0.0, local_time + stable_offset_mean)
         send_trigger(pub_socket, minimal_trigger)
-        outlet.push_sample([current_annotation])
         minimal_trigger = new_trigger(curr_image, 0.0, local_time + stable_offset_mean)
         send_trigger(pub_socket, minimal_trigger)
-        outlet.push_sample([curr_image])
         
 
         if recall_type == 'name':
@@ -539,20 +513,16 @@ def recall_phase(pub_socket, images_to_show, extra_images, recall_type, practice
         local_time = local_clock()
         minimal_trigger = new_trigger(current_annotation, 0.0, local_time + stable_offset_mean)
         send_trigger(pub_socket, minimal_trigger)
-        outlet.push_sample([current_annotation])
         minimal_trigger = new_trigger(curr_image, 0.0, local_time + stable_offset_mean)
         send_trigger(pub_socket, minimal_trigger)
-        outlet.push_sample([curr_image])
         win.flip()
         core.wait(recall_verbal_time)
 
         local_time = local_clock()
         minimal_trigger = new_trigger(current_annotation, 0.0, local_time + stable_offset_mean)
         send_trigger(pub_socket, minimal_trigger)
-        outlet.push_sample([current_annotation])
         minimal_trigger = new_trigger(curr_image, 0.0, local_time + stable_offset_mean)
         send_trigger(pub_socket, minimal_trigger)
-        outlet.push_sample([curr_image])
 
         noise_stim.draw()
         win.flip()
@@ -718,16 +688,15 @@ def experiment_gui():
 
     pupil_time_align_val = request_pupil_time(pupil_remote)
     outlet.push_sample([str(pupil_time_align_val)])
-    print(pupil_time_align_val, 'time align')
     local_time = local_clock()
     outlet.push_sample(['start of baseline'])
     minimal_trigger = new_trigger('baseline', 0.0, local_time + stable_offset_mean)
     send_trigger(pub_socket, minimal_trigger)
 
-    # instructions(text)
-    # noise_stim.draw()
-    # win.flip()
-    # core.wait(180)
+    instructions(text)
+    noise_stim.draw()
+    win.flip()
+    core.wait(180)
     outlet.push_sample(['end of baseline'])
     
     pupil_time_align_val = request_pupil_time(pupil_remote)
@@ -783,7 +752,6 @@ def experiment_gui():
         
         pupil_time_align_val = request_pupil_time(pupil_remote)
         outlet.push_sample([str(pupil_time_align_val)])
-        print(pupil_time_align_val, 'time align')
         pupil_time_align_val = None
 
         shown_images = shown_images_batches[i]
@@ -794,7 +762,23 @@ def experiment_gui():
         instructions(text)
         text = "Instructions: \n \n You will be shown a sequence of images with the person's name and related facts. \n \n Please keep your attention on the screen and remember as many details as possible for each person. \n \n You will be tested on how much you remember after this. \n \n It will automatically move forward to the next part. \n \n Press [1] to continue."
         instructions(text)
+
+        pupil_time_align_val = request_pupil_time(pupil_remote)
+        outlet.push_sample([str(pupil_time_align_val)])
+        outlet.push_sample([f'start of learning phase batch {i+1} /2'])
+        minimal_trigger = new_trigger(f'start of learning phase batch {i+1} /2', 0.0, local_time + stable_offset_mean)
+        send_trigger(pub_socket, minimal_trigger)
+        pupil_time_align_val = None
+
         learning_phase(pub_socket, shown_images)
+
+        pupil_time_align_val = request_pupil_time(pupil_remote)
+        outlet.push_sample([str(pupil_time_align_val)])
+        outlet.push_sample([f'end of learning phase batch {i+1} /2'])
+        minimal_trigger = new_trigger(f'end of learning phase batch {i+1} /2', 0.0, local_time + stable_offset_mean)
+        send_trigger(pub_socket, minimal_trigger)
+        pupil_time_align_val = None
+
         instructions('End of learning phase. \n \n Press [1] to continue to the game break.')
         game_break(pub_socket)
 
@@ -803,7 +787,23 @@ def experiment_gui():
         instructions(text)
         text = f"Instructions: \n \n You will be shown a sequence of images. \n \n When you see the image, your job is just to look at it - it will automatically move forward to the next part. \n \n Press [1] to continue."
         instructions(text)
+
+        pupil_time_align_val = request_pupil_time(pupil_remote)
+        outlet.push_sample([str(pupil_time_align_val)])
+        outlet.push_sample([f'start of recognition phase batch {i+1} /2'])
+        minimal_trigger = new_trigger(f'start of recognition phase batch {i+1} /2', 0.0, local_time + stable_offset_mean)
+        send_trigger(pub_socket, minimal_trigger)
+        pupil_time_align_val = None
+
         recognition_phase(pub_socket, shown_images, extra_images, repeats = False, ratio_shown = 1)
+
+        pupil_time_align_val = request_pupil_time(pupil_remote)
+        outlet.push_sample([str(pupil_time_align_val)])
+        outlet.push_sample([f'end of recognition phase batch {i+1} /2'])
+        minimal_trigger = new_trigger(f'end of recognition phase batch {i+1} /2', 0.0, local_time + stable_offset_mean)
+        send_trigger(pub_socket, minimal_trigger)
+        pupil_time_align_val = None
+
         instructions('End of recognition phase. \n \n Press [1] to continue to the game break.')
         game_break(pub_socket)
 
@@ -812,7 +812,22 @@ def experiment_gui():
         instructions(text)
         text = f"Instructions: \n \n You will be shown a sequence of images. \n \n Please keep your attention on the screen at all times. \n \n When you see the image, your job is just to look at it - it will automatically move forward to the next part. \n \n Press [1] to continue."
         instructions(text)
+
+        pupil_time_align_val = request_pupil_time(pupil_remote)
+        outlet.push_sample([str(pupil_time_align_val)])
+        outlet.push_sample([f'start of names phase batch {i+1} /2'])
+        minimal_trigger = new_trigger(f'start of names phase batch {i+1} /2', 0.0, local_time + stable_offset_mean)
+        send_trigger(pub_socket, minimal_trigger)
+        pupil_time_align_val = None
+
         recall_phase(pub_socket, shown_images, [], 'name')
+
+        pupil_time_align_val = request_pupil_time(pupil_remote)
+        outlet.push_sample([str(pupil_time_align_val)])
+        outlet.push_sample([f'end of names phase batch {i+1} /2'])
+        minimal_trigger = new_trigger(f'end of phase batch {i+1} /2', 0.0, local_time + stable_offset_mean)
+        send_trigger(pub_socket, minimal_trigger)
+        pupil_time_align_val = None
         instructions('End of names phase. \n \n Press [1] to continue.')
 
         # batch recording
@@ -820,7 +835,6 @@ def experiment_gui():
         
         pupil_time_align_val = request_pupil_time(pupil_remote)
         outlet.push_sample([str(pupil_time_align_val)])
-        print(pupil_time_align_val, 'time align')
         pupil_time_align_val = None
 
         if i < 1:
@@ -834,7 +848,6 @@ def experiment_gui():
     print("exiting sensor streams")
     pupil_time_align_val = request_pupil_time(pupil_remote)
     outlet.push_sample([str(pupil_time_align_val)])
-    print(pupil_time_align_val, 'time align')
     local_time = local_clock()
     minimal_trigger = new_trigger('end of experiment', duration, local_time + stable_offset_mean)
     send_trigger(pub_socket, minimal_trigger)
