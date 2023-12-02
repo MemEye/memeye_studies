@@ -16,6 +16,7 @@ from psychopy import visual, core, event, monitors #, sound
 faulthandler.enable()
 
 #TODO: check experimentroom wifi setup on computer, do final test
+#TODO: collect data for saksham
 
 # VARIABLES THAT CAN CHANGE - ADJUST THESE TO CHANGE THE EXPERIMENT
 on_lab_comp = True
