@@ -15,8 +15,7 @@ from pylsl import StreamInfo, StreamOutlet
 from psychopy import visual, core, event, monitors #, sound
 faulthandler.enable()
 
-# TODO: make sure instructions make sense
-#TODO: make annotations more readable
+#TODO: check experimentroom wifi setup on computer, do final test
 
 # VARIABLES THAT CAN CHANGE - ADJUST THESE TO CHANGE THE EXPERIMENT
 on_lab_comp = True
@@ -56,10 +55,16 @@ noise_texture = (noise_texture - noise_texture.min()) / (noise_texture.max() - n
 # Create an image stimulus from the RGB noise
 noise_stim = visual.ImageStim(win, image=noise_texture, size = win.size, units='pix')
 
+fixation = visual.ShapeStim(win, 
+                    vertices=((0, -0.05), (0, 0.05), (0,0), (-0.05,0), (0.05, 0)),
+                    lineWidth=10,
+                    closeShape=False,
+                    lineColor="black")
+
 
 learning_time = 10  # Time each image is shown during learning phase (in seconds)
 recognition_time = 7
-break_time = 3  # Time between images during learning phase (in seconds)
+break_time = 1  # Time between images during learning phase (in seconds)
 recall_time = 7  # Max time for each image during remembering phase (in seconds)
 recall_verbal_time = 7 #time to say name out loud
 
@@ -191,7 +196,7 @@ def new_trigger(label, duration, timestamp):
 
 def learning_phase(pub_socket, images, practice = False):
     global win
-    global noise_stim
+    global fixation
     global learning_time
     global break_time
     global on_lab_comp
@@ -199,7 +204,17 @@ def learning_phase(pub_socket, images, practice = False):
     global stable_offset_mean
     global outlet
 
+    count = 0
+    total = len(images)
+
     for img_path in images:
+        count += 1
+        count_text = f'{count}/{total}'
+
+        count_stim = visual.TextStim(win, text=count_text,
+                         pos=(0.9, -0.9),
+                         color='white')
+
         img = Image.open(img_path)
         img_width, img_height = img.size
 
@@ -231,6 +246,7 @@ def learning_phase(pub_socket, images, practice = False):
         image.draw()
         text_stim = visual.TextStim(win, text=text, pos=(0, -0.7), color=(1, 1, 1))
         text_stim.draw()
+        count_stim.draw()
         win.flip()
         
         # Set different timing for different phases
@@ -240,19 +256,20 @@ def learning_phase(pub_socket, images, practice = False):
             core.quit()
 
         local_time = local_clock()
-        minimal_trigger = new_trigger(current_annotation, 0.0, local_time + stable_offset_mean)
-        send_trigger(pub_socket, minimal_trigger)
         minimal_trigger = new_trigger(curr_image, 0.0, local_time + stable_offset_mean)
         send_trigger(pub_socket, minimal_trigger)
+        minimal_trigger = new_trigger(current_annotation, 0.0, local_time + stable_offset_mean)
+        send_trigger(pub_socket, minimal_trigger)
+
         # Break between images (only during learning phase)
-        noise_stim.draw()
+        fixation.draw()
         win.flip()
         core.wait(break_time)
 
 
 def recognition_phase(pub_socket, shown_images, extra_images, repeats = False, ratio_shown = 1, practice = False):
     global win
-    global noise_stim
+    global fixation
     global recognition_time
     global break_time
     global local_clock
@@ -268,8 +285,16 @@ def recognition_phase(pub_socket, shown_images, extra_images, repeats = False, r
     images = images_to_show + extra_images
 
     random.shuffle(images)
+    count = 0
+    total = len(images)
 
     for img_path in images:
+        count += 1
+        count_text = f'{count}/{total}'
+
+        count_stim = visual.TextStim(win, text=count_text,
+                         pos=(0.9, -0.9),
+                         color='white')
         img_name = os.path.basename(img_path)
 
         img = Image.open(img_path)
@@ -288,6 +313,7 @@ def recognition_phase(pub_socket, shown_images, extra_images, repeats = False, r
         image = visual.ImageStim(win, image=img_path, size=(img_width * scale_factor, img_height * scale_factor), units = 'pix')
 
         image.draw()
+        count_stim.draw()
         win.flip()
 
         current_annotation = 'recognition' if not practice else 'practice recognition'
@@ -307,13 +333,13 @@ def recognition_phase(pub_socket, shown_images, extra_images, repeats = False, r
             core.quit()
 
         local_time = local_clock()
-        minimal_trigger = new_trigger(current_annotation, 0.0, local_time + stable_offset_mean)
-        send_trigger(pub_socket, minimal_trigger)
         minimal_trigger = new_trigger(curr_image, 0.0, local_time + stable_offset_mean)
+        send_trigger(pub_socket, minimal_trigger)
+        minimal_trigger = new_trigger(current_annotation, 0.0, local_time + stable_offset_mean)
         send_trigger(pub_socket, minimal_trigger)
         
 
-        text_stim = visual.TextStim(win, text="Do you recognize this face? \n \n (1: Yes, 2: No)", 
+        text_stim = visual.TextStim(win, text="Do you recognize this person? \n \n (1: Yes, 2: No)", 
                                     pos=(0,0), color=(1, 1, 1))
         text_stim.draw()
 
@@ -370,12 +396,12 @@ def recognition_phase(pub_socket, shown_images, extra_images, repeats = False, r
                 core.quit()
         
         local_time = local_clock()
-        minimal_trigger = new_trigger(current_annotation, 0.0, local_time + stable_offset_mean)
-        send_trigger(pub_socket, minimal_trigger)
         minimal_trigger = new_trigger(curr_image, 0.0, local_time + stable_offset_mean)
         send_trigger(pub_socket, minimal_trigger)
+        minimal_trigger = new_trigger(current_annotation, 0.0, local_time + stable_offset_mean)
+        send_trigger(pub_socket, minimal_trigger)
 
-        noise_stim.draw()
+        fixation.draw()
         win.flip()
         core.wait(break_time)
         keys = event.getKeys(keyList=['escape'])
@@ -385,7 +411,7 @@ def recognition_phase(pub_socket, shown_images, extra_images, repeats = False, r
 
 def recall_phase(pub_socket, images_to_show, extra_images, recall_type, practice = False):
     global win
-    global noise_stim
+    global fixation
     global recall_time
     global recall_verbal_time
     global break_time
@@ -397,7 +423,7 @@ def recall_phase(pub_socket, images_to_show, extra_images, recall_type, practice
     random.shuffle(images)
 
     if recall_type == 'name':
-        text = "Use the following 7 seconds to try to recall the person's first name (or anything else about them) in your mind. \n \n (Do not say out loud)"
+        text = "Use the following 7 seconds to try to recall the person's name (or anything else about them) in your mind. \n \n (Do not say out loud)"
         
     text_stim = visual.TextStim(win, text=text, pos=(0,0), color=(1, 1, 1))
     text_stim.draw()
@@ -407,7 +433,16 @@ def recall_phase(pub_socket, images_to_show, extra_images, recall_type, practice
     else:
         core.wait(5)
 
+    count = 0
+    total = len(images)
+
     for img_path in images:
+        count += 1
+        count_text = f'{count}/{total}'
+
+        count_stim = visual.TextStim(win, text=count_text,
+                         pos=(0.9, -0.9),
+                         color='white')
         img_name = os.path.basename(img_path)
 
         img = Image.open(img_path)
@@ -425,6 +460,7 @@ def recall_phase(pub_socket, images_to_show, extra_images, recall_type, practice
         image = visual.ImageStim(win, image=img_path, size=(img_width * scale_factor, img_height * scale_factor), units = 'pix')
         
         image.draw()
+        count_stim.draw()
         win.flip()
 
         current_annotation = f'recall {recall_type}' if not practice else f'practice recall {recall_type}'
@@ -443,19 +479,24 @@ def recall_phase(pub_socket, images_to_show, extra_images, recall_type, practice
             core.quit()
         
         local_time = local_clock()
-        minimal_trigger = new_trigger(current_annotation, 0.0, local_time + stable_offset_mean)
-        send_trigger(pub_socket, minimal_trigger)
         minimal_trigger = new_trigger(curr_image, 0.0, local_time + stable_offset_mean)
         send_trigger(pub_socket, minimal_trigger)
+        minimal_trigger = new_trigger(current_annotation, 0.0, local_time + stable_offset_mean)
+        send_trigger(pub_socket, minimal_trigger)
+        
         
         if recall_type == 'name':
-            text = "Do you remember this person's first name (or anything else about them)? \n \n (1: Yes, 2: No)"
+            text = "Do you remember this person's name (or anything else about them)? \n \n (1: Yes, 2: No)"
 
         text_stim = visual.TextStim(win, text=text, pos=(0,0), color=(1, 1, 1))
         text_stim.draw()
         current_annotation = f'recall {recall_type} questions' if not practice else f'practice recall {recall_type} questions'
         curr_image = img_name
-        send_annotation_to_pupil = True
+        minimal_trigger = new_trigger(current_annotation, 0.0, local_time + stable_offset_mean)
+        send_trigger(pub_socket, minimal_trigger)
+        minimal_trigger = new_trigger(curr_image, 0.0, local_time + stable_offset_mean)
+        send_trigger(pub_socket, minimal_trigger)
+
         win.flip()
         core.wait(0.5)
         keys = event.waitKeys(keyList=['1', '2', 'num_1', 'num_2', 'escape'], timeStamped=timer)
@@ -497,9 +538,9 @@ def recall_phase(pub_socket, images_to_show, extra_images, recall_type, practice
 
 
         local_time = local_clock()
-        minimal_trigger = new_trigger(current_annotation, 0.0, local_time + stable_offset_mean)
-        send_trigger(pub_socket, minimal_trigger)
         minimal_trigger = new_trigger(curr_image, 0.0, local_time + stable_offset_mean)
+        send_trigger(pub_socket, minimal_trigger)
+        minimal_trigger = new_trigger(current_annotation, 0.0, local_time + stable_offset_mean)
         send_trigger(pub_socket, minimal_trigger)
         
 
@@ -519,12 +560,12 @@ def recall_phase(pub_socket, images_to_show, extra_images, recall_type, practice
         core.wait(recall_verbal_time)
 
         local_time = local_clock()
-        minimal_trigger = new_trigger(current_annotation, 0.0, local_time + stable_offset_mean)
-        send_trigger(pub_socket, minimal_trigger)
         minimal_trigger = new_trigger(curr_image, 0.0, local_time + stable_offset_mean)
         send_trigger(pub_socket, minimal_trigger)
+        minimal_trigger = new_trigger(current_annotation, 0.0, local_time + stable_offset_mean)
+        send_trigger(pub_socket, minimal_trigger)
 
-        noise_stim.draw()
+        fixation.draw()
         win.flip()
         core.wait(break_time)
         keys = event.getKeys(keyList=['escape'])
@@ -606,6 +647,7 @@ def experiment_gui():
     global outlet
     global local_clock
     global stable_offset_mean
+    global subject_id
 
 
     pupil_ip, pupil_port = "127.0.0.1", 50020
@@ -640,7 +682,7 @@ def experiment_gui():
     )
 
     for _ in range(5):
-        outlet.push_sample(['test'])
+        outlet.push_sample([f'test {subject_id}'])
         core.wait(0.5)
 
     # Load images
@@ -693,11 +735,11 @@ def experiment_gui():
     minimal_trigger = new_trigger('baseline', 0.0, local_time + stable_offset_mean)
     send_trigger(pub_socket, minimal_trigger)
 
-    instructions(text)
-    noise_stim.draw()
-    win.flip()
-    core.wait(180)
-    outlet.push_sample(['end of baseline'])
+    # instructions(text)
+    # noise_stim.draw()
+    # win.flip()
+    # core.wait(180)
+    # outlet.push_sample(['end of baseline'])
     
     pupil_time_align_val = request_pupil_time(pupil_remote)
     outlet.push_sample([str(pupil_time_align_val)])
@@ -709,7 +751,7 @@ def experiment_gui():
     # practice phases are all here
     text = "We will now begin the practice section. \n \n Press [1] to continue."
     instructions(text)
-    text = f"This study will consist of several sections that involve looking at images of faces. \n \n You will be asked to try to remember as many details as you can and answer questions later. \n \n Press [1] to continue. "
+    text = f"This study will consist of several sections that involve looking at images of people. \n \n You will be asked to try to remember as many details as you can and answer questions later. \n \n Press [1] to continue. "
     instructions(text)
 
     text = f"We will now begin a practice learning phase of the experiment. \n \n Press [1] to continue"
@@ -785,7 +827,7 @@ def experiment_gui():
         # Phase 2: Recognition  
         text = f"We will now begin the recognition phase of the experiment (Batch {i+1} out of 2). \n \n Press [1] to continue"
         instructions(text)
-        text = f"Instructions: \n \n You will be shown a sequence of images. \n \n When you see the image, your job is just to look at it - it will automatically move forward to the next part. \n \n Press [1] to continue."
+        text = f"Instructions: \n \n You will be shown a sequence of images. \n \n When you see the image, your job is just to look at it - it will automatically move forward to the next part. \n \n There will be some new people, we will ask if you have seen them before. \n \n Press [1] to continue."
         instructions(text)
 
         pupil_time_align_val = request_pupil_time(pupil_remote)
