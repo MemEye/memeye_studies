@@ -15,8 +15,6 @@ from pylsl import StreamInfo, StreamOutlet
 from psychopy import visual, core, event, monitors #, sound
 faulthandler.enable()
 
-#TODO: collect data for saksham
-
 # VARIABLES THAT CAN CHANGE - ADJUST THESE TO CHANGE THE EXPERIMENT
 on_lab_comp = True
 data_save_location = 'data'
