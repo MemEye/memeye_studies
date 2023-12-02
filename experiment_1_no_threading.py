@@ -15,7 +15,6 @@ from pylsl import StreamInfo, StreamOutlet
 from psychopy import visual, core, event, monitors #, sound
 faulthandler.enable()
 
-#TODO: check experimentroom wifi setup on computer, do final test
 #TODO: collect data for saksham
 
 # VARIABLES THAT CAN CHANGE - ADJUST THESE TO CHANGE THE EXPERIMENT
@@ -736,11 +735,11 @@ def experiment_gui():
     minimal_trigger = new_trigger('baseline', 0.0, local_time + stable_offset_mean)
     send_trigger(pub_socket, minimal_trigger)
 
-    # instructions(text)
-    # noise_stim.draw()
-    # win.flip()
-    # core.wait(180)
-    # outlet.push_sample(['end of baseline'])
+    instructions(text)
+    noise_stim.draw()
+    win.flip()
+    core.wait(180)
+    outlet.push_sample(['end of baseline'])
     
     pupil_time_align_val = request_pupil_time(pupil_remote)
     outlet.push_sample([str(pupil_time_align_val)])
