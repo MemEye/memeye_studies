@@ -4,14 +4,6 @@ import pandas as pd
 from pyplr import utils
 import os
 
-# rec_dir = '/Volumes/Extreme SSD/memeye_studies/data/raw/101/2023-12-04_16-50-18/experiment_1/test'
-num = 101
-sample_rate = 120 if num < 120 else 200
-rec_dir = f'/Users/monaabd/Desktop/pupil_exports/{num}'
-
-
-
-
 def reformat_annos(annos, label_name):
     df = annos.copy()
     df['pair'] = [i // 2 for i in range(len(df))]  
@@ -106,7 +98,7 @@ def merge_events(p):
 
 def process_pupil_data(rec_dir, sample_rate):
     s = utils.new_subject(
-    rec_dir, export='000', out_dir_nm=f'processed_pupil')
+    rec_dir, export='000', out_dir_nm=f'processed')
 
     # Load pupil data
     samples = utils.load_pupil(
@@ -229,9 +221,9 @@ def run(data_loc, subject_nums):
         subject_loc = os.path.join(data_loc, str(i))
         sample_rate = 120 if i < 120 else 200
         processed_pupil = process_pupil_data(subject_loc, sample_rate)
-        os.makedirs(os.path.join(subject_loc, f'processed_pupil'), exist_ok=True)
-
-        save_path = os.path.join(subject_loc, f'processed_pupil', f'processed_pupil_{i}.csv')
+        os.makedirs(os.path.join(subject_loc, f'processed'), exist_ok=True)
+        save_path = os.path.join(subject_loc, f'processed', f'processed_pupil_{i}.csv')
+        print(save_path)
         processed_pupil.to_csv(save_path)
 
 
