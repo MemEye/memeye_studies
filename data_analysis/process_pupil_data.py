@@ -90,7 +90,6 @@ def process_pupil_data(rec_dir, sample_rate):
     #TODO: see if we can load both eyes?
     #TODO: load blinks
     #TODO: load gazes
-    #TODO: higher level feature processing (vergence, saccade duration, etc)
     events.reset_index(inplace=True)
     events = events.iloc[14:]
     events = events[['timestamp', 'label']]
