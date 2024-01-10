@@ -86,6 +86,10 @@ def process_pupil_data(rec_dir, sample_rate):
         s['data_dir'], eye_id='best', method='3d')
     
     events = utils.load_annotations(s['data_dir'])
+    #TODO: load fixations
+    #TODO: load blinks
+    #TODO: load gazes
+    #TODO: higher level feature processing (vergence, saccade duration, etc)
     events.reset_index(inplace=True)
     events = events.iloc[14:]
     events = events[['timestamp', 'label']]
