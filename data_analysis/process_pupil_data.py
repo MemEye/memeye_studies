@@ -87,6 +87,7 @@ def process_pupil_data(rec_dir, sample_rate):
     
     events = utils.load_annotations(s['data_dir'])
     #TODO: load fixations
+    #TODO: see if we can load both eyes?
     #TODO: load blinks
     #TODO: load gazes
     #TODO: higher level feature processing (vergence, saccade duration, etc)
