@@ -18,25 +18,6 @@ def reformat_annos(annos, label_name):
 
     return result_df
 
-def reformat_jpg_annos(annos):
-    df = annos.copy()
-    df['block_start'] = df['image'] != df['image'].shift()
-
-    # Filter out the rows where 'block_start' is True (start of a new block)
-    start_df = df[df['block_start']].copy()
-
-    # For each start, find the end time, which is the time just before the next block starts
-    start_df['time_end'] = start_df['timestamp'].shift(-1) - 1
-
-    # Handling the last block: If the last block's 'time_end' is NaN, set it to the last 'times' value
-    if pd.isna(start_df['time_end'].iloc[-1]):
-        start_df['time_end'].iloc[-1] = df['timestamp'].iloc[-1]
-
-    # Drop the helper column 'block_start' and reset the index
-    start_df = start_df.drop(columns=['block_start']).reset_index(drop=True)
-
-    return start_df
-
 def merge_events(p):
     # Empty list to store the new rows
     new_rows = []
@@ -203,15 +184,14 @@ def process_pupil_data(rec_dir, sample_rate):
     merged_df['resp_confidence'] = np.where(merged_df['is_question'].isna(), np.nan, merged_df['resp_confidence'])
     merged_df = merged_df.drop(columns = ['timestamp'])
 
-    j = reformat_jpg_annos(events_jpg)
     merged_df = pd.merge_asof(merged_df.sort_values('pupil_timestamp'),
-                            j.sort_values('timestamp'),
+                            events_jpg.sort_values('timestamp'),
                             left_on='pupil_timestamp',
                             right_on='timestamp',
                             direction='nearest')
     merged_df['image'] = np.where(merged_df['label'].isna() | (merged_df['label'] == 'baseline'), np.nan, merged_df['image'])
     merged_df['image'] = np.where(merged_df['label'].str.contains('break'), np.nan, merged_df['image'])
-    merged_df = merged_df.drop(columns = ['timestamp', 'time_end'])
+    merged_df = merged_df.drop(columns = ['timestamp'])
 
     return merged_df
 
