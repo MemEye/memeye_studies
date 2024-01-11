@@ -77,15 +77,16 @@ def merge_events(p):
     p = pd.DataFrame(new_rows)
     return p
 
-def process_pupil_data(rec_dir, sample_rate):
+def process_pupil_data(rec_dir, sample_rate, eye_id):
     s = utils.new_subject(
     rec_dir, export='000', out_dir_nm=f'processed')
 
     # Load pupil data
     samples = utils.load_pupil(
-        s['data_dir'], eye_id='best', method='3d')
+        s['data_dir'], eye_id=eye_id, method='3d')
     
     events = utils.load_annotations(s['data_dir'])
+    
     #TODO: load fixations
     #TODO: see if we can load both eyes?
     #TODO: load blinks
