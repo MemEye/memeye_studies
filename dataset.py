@@ -11,7 +11,7 @@ class Dataset(torch.utils.data.Dataset):
                 if int(file[-3:])>120:
                     for f in glob.glob(file+'/processed/segmented/emotibit/*'):
                         label=f.split('/')[-1]
-                        if label in ['negative','learning','recall','recognition_familiar','recognition_new']:
+                        if label in ['negative','learning','recall','recognition_familar','recognition_new']:
                             for csvs in glob.glob(f+'/*.csv'):
                                 df = pd.read_csv(csvs)
                                 df=df[['T1','TH','EA','EL','PI','PR','PG','SF','SR','SA']]
@@ -20,6 +20,17 @@ class Dataset(torch.utils.data.Dataset):
                                 df=df.fillna(0)
                                 df=df.values
                                 df=torch.tensor(df,dtype=torch.float32)
+                                #Create one hot encoding for labels
+                                if label=='negative':
+                                    label=torch.tensor([1,0,0,0,0],dtype=torch.float32)
+                                elif label=='learning':
+                                    label=torch.tensor([0,1,0,0,0],dtype=torch.float32)
+                                elif label=='recall':
+                                    label=torch.tensor([0,0,1,0,0],dtype=torch.float32)
+                                elif label=='recognition_familar':
+                                    label=torch.tensor([0,0,0,1,0],dtype=torch.float32)
+                                elif label=='recognition_new':
+                                    label=torch.tensor([0,0,0,0,1],dtype=torch.float32)
                                 self.data.append([df,label])
     def __len__(self):
         return len(self.data)
@@ -29,6 +40,5 @@ class Dataset(torch.utils.data.Dataset):
     
 #Save the dataset in train.pt
 dataset=Dataset()
-print(len(dataset))
 torch.save(dataset,'test.pt')
 
