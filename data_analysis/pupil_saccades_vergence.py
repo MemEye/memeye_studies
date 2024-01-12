@@ -290,6 +290,7 @@ def saccade_params(dataframe, minlen=5, maxvel=40, maxacc=340):
     print(array_len.mean())
 
     sac_result = {
+        #TODO: add in start and end times here
         'sac_count': sac_count,
         'sac_array_dir': array_dir,
         'sac_array_len': array_len,
@@ -331,6 +332,7 @@ def convert_sac_to_df(sac_result):
     return pd.DataFrame(sac_result)
 
 def append_sac_result(df, sac_result):
+    #TODO: use merge_asof 
     return pd.concat([df, sac_result], ignore_index=True)
 
 def run_on_segment(files_loc, subject_id):
