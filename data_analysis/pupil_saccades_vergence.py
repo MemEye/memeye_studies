@@ -1,5 +1,3 @@
-#TODO: higher level feature processing (vergence, saccade duration, etc)
-
 # take in the processed eye_0 and eye_1 files for each user, 
 # and calculate the saccades and vergence for each eye
 # saccades code similar to sams, vergence will need to be calculated
@@ -11,6 +9,7 @@ import pandas as pd
 import os
 from math import atan2,degrees
 from scipy.stats import skew, kurtosis
+from tqdm import tqdm
 
 
 hampelwindow = 10 # hampel filter (median filter) window size 
@@ -158,7 +157,6 @@ def saccade_params(dataframe, minlen=5, maxvel=40, maxacc=340):
                 # ignore saccades that did not last long enough
                 if dur >= minlen:
                     # add to saccade ends
-                    # TODO: check these here
                     Esac.append([t1, t2, dur, x[t1i], y[t1i], x[t2i], y[t2i]])
                 else:
                     # remove last saccade start on too low duration
@@ -191,7 +189,6 @@ def saccade_params(dataframe, minlen=5, maxvel=40, maxacc=340):
             start_list.append(start)
             end = i[1]
             end_list.append(end)
-            # TODO: maybe add check that end-start == duration (or close enough)
             dist = np.sqrt((i[5] - i[3])**2 + (i[6] - i[4])**2)
             len_list.append(dist)
             vel = dist/dur
@@ -328,14 +325,12 @@ def saccade_params(dataframe, minlen=5, maxvel=40, maxacc=340):
 
     return sac_result
 
-# TODO: psuedocode, change as needed, nothing is set in stone :)
 def convert_sac_to_df(sac_result):
     return pd.DataFrame(sac_result)
 
 def append_sac_result(df, sac_result):
     sac_result['sac_start_timestamp'] = sac_result['sac_start_timestamp'] / 1000
     sac_result['sac_end_timestamp'] = sac_result['sac_end_timestamp'] / 1000
-#todo: check how the timstamps are calculated, see if there are other multiplcations errors in other data
     combined = pd.merge_asof(df, 
                             sac_result, 
                             left_on='pupil_timestamp',
@@ -350,44 +345,46 @@ def append_sac_result(df, sac_result):
                                  & (combined['pupil_timestamp'] < combined['sac_end_timestamp']), 
                                  combined[col], np.nan)
     
-    # remove the saccade timestmap columns df.drop
-    
-    combined.drop(['sac_start_timestamp', 'sac_end_timestamp'], axis=1)
+    combined.drop(['sac_start_timestamp', 'sac_end_timestamp'], axis=1, inplace=True)
     return combined
 
-def run_on_segment(files_loc, subject_id, eye):
+def run_on_segment(global_loc, subject_id, eye):
     segments = ['learning', 'negative', 'practice', 'recall', 'recognition_new', 'recognition_familar']
 
-    files_loc = f'/Users/kevinzhu/Desktop/MemEye/pupil_segmented_new/{subject_id}/{eye}' # fill this in
-    save_loc = f'/Users/kevinzhu/Desktop/MemEye/pupil_segmented_sac/{subject_id}/{eye}'
-    for segment in segments:
+    files_loc = os.path.join(global_loc, f'pupil_segmented_new/{subject_id}/{eye}') # fill this in
+    save_loc = os.path.join(global_loc, f'pupil_segmented_sac/{subject_id}/{eye}')
+    for segment in tqdm(segments):
         files = []
         segment_path = os.path.join(files_loc, segment)
         files += [os.path.join(segment_path, f) for f in os.listdir(segment_path) if f.endswith('.csv')]
         
-        for file in files:
+        for file in tqdm(files):
             df = pd.read_csv(file)
-            new_segment = os.path.dirname(file)
-            save_path = os.path.join(save_loc, new_segment)
+            save_path = os.path.join(save_loc, segment)
             os.makedirs(save_path, exist_ok=True)
 
             df1 = preprocess_xy(df)
             sac_result = saccade_params(df1)
             sac_result = convert_sac_to_df(sac_result)
             combined = append_sac_result(df1, sac_result)
-
-            output_sav_path = os.path.join(save_path, 'SOMETHING.csv')
+            
+            filename = file.split('/')[-1]
+            output_sav_path = os.path.join(save_path, filename)
+            for col in combined:
+                if 'unnamed' in col.lower():
+                    combined.drop(col, inplace=True, axis=1)
             combined.to_csv(output_sav_path)
 
 
 def run(subjects):
     for subject_id in subjects:
-        #TODO: pull out the file paths so its not hard codded in a fxn
-        
-        run_on_segment('/Users/kevinzhu/Desktop/MemEye/pupil_segmented_new', subject_id, 'segmented_left')
-        run_on_segment('/Users/kevinzhu/Desktop/MemEye/pupil_segmented_new', subject_id, 'segmented_right')
+        global_loc = '/Users/monaabd/Desktop/'
+        run_on_segment(global_loc, subject_id, 'segmented_left')
+        run_on_segment(global_loc, subject_id, 'segmented_right')
+
+#TODO: how are x_ham	y_ham	x_int	y_int relevant?
 
 if __name__=='__main__':
-    num_subjects = 5
+    num_subjects = 1
     subjects = list(range(101, 100+num_subjects+1))
     run(subjects)
