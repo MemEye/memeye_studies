@@ -1,5 +1,5 @@
 from psychopy import visual, core, event
-from combined_annotations import collect_sensor_data
+from data_collection.combined_annotations import collect_sensor_data
 from threading import Thread
 import os
 import random
