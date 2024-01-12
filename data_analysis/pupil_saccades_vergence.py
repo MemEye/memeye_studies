@@ -178,12 +178,19 @@ def saccade_params(dataframe, minlen=5, maxvel=40, maxacc=340):
     vel_list = []
     ang_list = []
     dir_list = []
+    start_list = []
+    end_list = []
     zones = ["N", "NE", "E", "SE", "S", "SW", "W", "NW", "N"]
     
     if len(Esac) > 0:
         for i in Esac:
             dur = i[2]
             dur_list.append(dur)
+            start = i[0]
+            start_list.append(start)
+            end = i[1]
+            end_list.append(end)
+            # TODO: maybe add check that end-start == duration (or close enough)
             dist = np.sqrt((i[5] - i[3])**2 + (i[6] - i[4])**2)
             len_list.append(dist)
             vel = dist/dur
@@ -350,9 +357,12 @@ def run_on_segment(files_loc, subject_id):
             combined.to_csv(output_sav_path)
 
 
-def run(subjects):
+def run(subjects, data_loc):
     for subject_id in subjects:
+        #TODO: pull out the file paths so its not hard codded in a fxn
         run_on_segment('/Users/kevinzhu/Desktop/MemEye/pupil_segmented_new', subject_id)
 
-subjects = [str(i) for i in range(101, 133)]
-run(subjects)
+if __name__=='__main__':
+    num_subjects = 1
+    subjects = list(range(101, 100+num_subjects+1))
+    run(subjects)
