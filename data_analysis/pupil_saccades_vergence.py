@@ -292,6 +292,40 @@ def saccade_params(dataframe, minlen=5, maxvel=40, maxacc=340):
 d1 = preprocess_xy(data)
 sac_result = saccade_params(d1)
 
+
+
+# TODO: psuedocode, change as needed, nothing is set in stone :)
+def convert_sac_to_df(sac_result):
+    pass
+
+def append_sac_result(df, sac_result):
+    pass
+
+def run_on_segment(files_loc, subject_id):
+    segments = ['negative', 'recognition_new', 'recognition_familiar', 'recall', 'learning']
+    files = []
+    sav_dir = f'/Users/kevin/Desktop/pupil_segmente_saccades/{subject_id}' # fill this in
+    for segment in segments:
+        segment_path = os.path.join(files_loc, segment)
+        files += os.listdir(segment_path) # add in some filtering for only csvs
+
+    for file in files:
+        df = pd.read_csv(file)
+        segment = None # fill this in
+        save_path = os.path.join(sav_dir, segment)
+        os.makedirs(save_path, exist_ok=True)
+        sac_result = saccade_params(df)
+        sac_result = convert_sac_to_df(sac_result)
+        combined = append_sac_result(df, sac_result)
+        output_sav_path = os.path.join(save_path, 'SOMETHING.csv')
+        combined.to_csv(output_sav_path)
+
+def run(subjects):
+    for subject_id in subjects:
+        run_on_segment()
+
+        
+
 with open('processed_with_saccades.csv', 'w', newline='') as file:
     writer = csv.writer(file)
     writer.writerow(data)
