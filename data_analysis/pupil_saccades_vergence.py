@@ -290,6 +290,7 @@ def saccade_params(dataframe, minlen=5, maxvel=40, maxacc=340):
     print(array_len.mean())
 
     sac_result = {
+        #TODO: add in start and end times here
         'sac_count': sac_count,
         'sac_array_dir': array_dir,
         'sac_array_len': array_len,
