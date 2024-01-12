@@ -63,7 +63,7 @@ def save_segments(grouped_dfs, segmented_path):
                 break_count+=1
             
 
-def run(data_loc, subject_nums):
+def run_emotibit(data_loc, subject_nums):
     for subject_id in subject_nums:
         data_path = os.path.join(data_loc, f'{subject_id}/processed/')
 
@@ -73,21 +73,35 @@ def run(data_loc, subject_nums):
         grouped_dfs = segment_dataframe(emotibit_large, 'label')
         save_segments(grouped_dfs, emotibit_segmented_path)
 
-        # pupil_path = os.path.join(data_path, f'processed_pupil_{subject_id}.csv')
-        # pupil_segmented_path = os.path.join(data_path, 'segmented/pupil/')
-        # pupil_large = pd.read_csv(pupil_path)
-        # grouped_dfs = segment_dataframe(pupil_large, 'label')
-        # save_segments(grouped_dfs, pupil_segmented_path)
 
+def run_pupil(data_loc, subject_nums):
+    for subject_id in subject_nums:
+        data_path = os.path.join(data_loc, f'{subject_id}/processed_pupil/')
+
+        pupil_path_left = os.path.join(data_path, f'processed_pupil_{subject_id}_eye_left.csv')
+        pupil_path_right = os.path.join(data_path, f'processed_pupil_{subject_id}_eye_right.csv')
+        
+        pupil_segmented_path_left = os.path.join(data_path, 'segmented_left/')
+        pupil_segmented_path_right = os.path.join(data_path, 'segmented_right/')
+        pupil_left = pd.read_csv(pupil_path_left)
+        pupil_right = pd.read_csv(pupil_path_right)
+
+        grouped_dfs_left = segment_dataframe(pupil_left, 'label')
+        grouped_dfs_right = segment_dataframe(pupil_right, 'label')
+
+        save_segments(grouped_dfs_left, pupil_segmented_path_left)
+        save_segments(grouped_dfs_right, pupil_segmented_path_right)
 
 
 if __name__=='__main__':
-    image_info_path = '/Users/monaabd/Desktop/meng/meng_thesis/memeye_studies/experiment_1_names_facts.json'
+    image_info_path = '/Users/monaabd/Desktop/meng/meng_thesis/memeye_studies/data_collection/experiment_scripts/experiment_1_names_facts.json'
     with open(image_info_path, 'r') as file:
         images_to_info = json.load(file)
     num_subjects = 32
     subject_nums = list(range(101, 100+num_subjects+1))
     data_loc = '/Users/monaabd/Desktop/processed_data/'
-    run(data_loc, subject_nums)
+    # run_emotibit(data_loc, subject_nums)
+    pupil_data_loc = '/Users/monaabd/Desktop/pupil_processed_new/'
+    run_pupil(pupil_data_loc, subject_nums)
 
 

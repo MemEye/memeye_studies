@@ -200,20 +200,119 @@ def process_pupil_data(rec_dir, sample_rate, eye_id):
 
     return merged_df
 
+def load_extra_csvs(data_loc, subject_num):
+    extra_data_loc = os.path.join(data_loc, str(subject_num), 'exports/000')
+    fixations_path = os.path.join(extra_data_loc, 'fixations.csv')
+    blinks_path = os.path.join(extra_data_loc, 'blinks.csv')
+    gazes_path = os.path.join(extra_data_loc, 'gaze_positions.csv')
 
-def run(data_loc, subject_nums):
+    fixations_df = pd.read_csv(fixations_path)
+    fixations_df = fixations_df.add_prefix('fixations_')
+    blinks_df = pd.read_csv(blinks_path)
+    blinks_df = blinks_df.add_prefix('blinks_')
+    gazes_df = pd.read_csv(gazes_path)
+    gazes_new_mapping = {
+        'world_index': 'gaze_world_index', 
+        'confidence': 'gaze_confidence',
+        'norm_pos_x': 'gaze_norm_pos_x', 
+        'norm_pos_y': 'gaze_norm_pos_y', 
+        'base_data': 'gaze_base_data',
+        'eye_center0_3d_x': 'gaze_eye_center0_3d_x',
+        'eye_center0_3d_y': 'gaze_eye_center0_3d_y', 
+        'eye_center0_3d_z': 'gaze_eye_center0_3d_z',
+        'eye_center1_3d_x': 'gaze_eye_center1_3d_x', 
+        'eye_center1_3d_y': 'gaze_eye_center1_3d_y',
+        'eye_center1_3d_z': 'gaze_eye_center1_3d_z'
+    }
+    gazes_df.rename(columns = gazes_new_mapping, inplace=True)
+    return fixations_df, blinks_df, gazes_df
+
+
+def process_extra_data(processed_pupil_eye_left, processed_pupil_eye_right, data_loc, subject_num):
+    fixations_df, blinks_df, gazes_df = load_extra_csvs(data_loc, subject_num)
+    blinks_df = blinks_df.loc[blinks_df['blinks_confidence'] >= 0.4] # filter out any blinks with confidence of less than 0.40
+    fixations_df['fixations_end_timestamp'] = fixations_df['fixations_start_timestamp'] + fixations_df['fixations_duration']
+
+    fixations_df, blinks_df, gazes_df = load_extra_csvs(data_loc, subject_num)
+    blinks_df = blinks_df.loc[blinks_df['blinks_confidence'] >= 0.4] # filter out any blinks with confidence of less than 0.40
+    fixations_df['fixations_end_timestamp'] = fixations_df['fixations_start_timestamp'] + fixations_df['fixations_duration']
+
+    processed_pupil_both = pd.concat([processed_pupil_eye_left, processed_pupil_eye_right])
+    processed_pupil_both.sort_values('pupil_timestamp', inplace=True)
+    processed_pupil_both = pd.merge_asof(processed_pupil_both, gazes_df, left_on='pupil_timestamp',
+                                right_on='gaze_timestamp', direction='nearest')
+    processed_pupil_eye_left = processed_pupil_both.loc[processed_pupil_both.eye_id==1]
+    processed_pupil_eye_right = processed_pupil_both.loc[processed_pupil_both.eye_id==0]
+
+    cols_to_drop_left = ['gaze_eye_center0_3d_x', 'gaze_eye_center0_3d_y', 'gaze_eye_center0_3d_z', 
+                        'gaze_normal0_x', 'gaze_normal0_y', 'gaze_normal0_z', 'gaze_timestamp', 'gaze_world_index']
+
+    cols_to_drop_right = ['gaze_eye_center1_3d_x', 'gaze_eye_center1_3d_y', 'gaze_eye_center1_3d_z', 
+                        'gaze_normal1_x', 'gaze_normal1_y', 'gaze_normal1_z', 'gaze_timestamp', 'gaze_world_index']
+
+    processed_pupil_eye_left.drop(columns=cols_to_drop_left, inplace=True)
+    processed_pupil_eye_right.drop(columns=cols_to_drop_right, inplace=True)
+
+    processed_pupil_left = pd.merge_asof(processed_pupil_eye_left, blinks_df, left_on='pupil_timestamp',
+                            right_on='blinks_start_timestamp', direction='nearest')
+
+    processed_pupil_right = pd.merge_asof(processed_pupil_eye_right, blinks_df, left_on='pupil_timestamp',
+                                right_on='blinks_start_timestamp', direction='nearest')
+
+    processed_pupil_left['blinks_confidence'] = np.where((processed_pupil_left['pupil_timestamp'] >= processed_pupil_left['blinks_start_timestamp']) & (processed_pupil_left['pupil_timestamp'] < processed_pupil_left['blinks_end_timestamp']), processed_pupil_left['blinks_confidence'], np.nan)
+    processed_pupil_right['blinks_confidence'] = np.where((processed_pupil_right['pupil_timestamp'] >= processed_pupil_right['blinks_start_timestamp']) & (processed_pupil_right['pupil_timestamp'] < processed_pupil_right['blinks_end_timestamp']), processed_pupil_right['blinks_confidence'], np.nan)
+
+    cols_to_drop = ['blinks_id', 'blinks_start_timestamp', 'blinks_duration', 'blinks_end_timestamp', 'blinks_start_frame_index', 
+                    'blinks_index', 'blinks_end_frame_index', 'blinks_filter_response', 'blinks_base_data']
+
+    processed_pupil_left.drop(columns=cols_to_drop, inplace=True)
+    processed_pupil_right.drop(columns=cols_to_drop, inplace=True)
+
+    processed_pupil_left['is_blink'] = np.where(processed_pupil_left['blinks_confidence'].notna(), 'y', '')
+    processed_pupil_right['is_blink'] = np.where(processed_pupil_right['blinks_confidence'].notna(), 'y', '')
+
+    processed_pupil_left = pd.merge_asof(processed_pupil_left, fixations_df, left_on='pupil_timestamp',
+                            right_on='fixations_start_timestamp', direction='nearest')
+
+    processed_pupil_right = pd.merge_asof(processed_pupil_right, fixations_df, left_on='pupil_timestamp',
+                                right_on='fixations_start_timestamp', direction='nearest')
+    for col in fixations_df.columns:
+        processed_pupil_left[col] = np.where((processed_pupil_left['pupil_timestamp'] >= processed_pupil_left['fixations_start_timestamp']) & (processed_pupil_left['pupil_timestamp'] < processed_pupil_left['fixations_end_timestamp']), processed_pupil_left[col], np.nan)
+        processed_pupil_right[col] = np.where((processed_pupil_right['pupil_timestamp'] >= processed_pupil_right['fixations_start_timestamp']) & (processed_pupil_right['pupil_timestamp'] < processed_pupil_right['fixations_end_timestamp']), processed_pupil_right[col], np.nan)
+
+    cols_to_drop = ['fixations_id', 'fixations_start_timestamp', 'fixations_end_timestamp', 'fixations_duration', 'fixations_start_frame_index', 
+                    'fixations_end_frame_index', 'fixations_base_data']
+
+    processed_pupil_left.drop(columns=cols_to_drop, inplace=True)
+    processed_pupil_right.drop(columns=cols_to_drop, inplace=True)
+
+    return processed_pupil_left, processed_pupil_right
+
+
+
+def run(data_loc, save_loc, subject_nums):
     for i in subject_nums:
         subject_loc = os.path.join(data_loc, str(i))
+        subject_save_loc = os.path.join(save_loc, str(i))
         sample_rate = 120 if i < 120 else 200
-        processed_pupil = process_pupil_data(subject_loc, sample_rate)
-        os.makedirs(os.path.join(subject_loc, f'processed'), exist_ok=True)
-        save_path = os.path.join(subject_loc, f'processed', f'processed_pupil_{i}.csv')
-        print(save_path)
-        processed_pupil.to_csv(save_path)
+        processed_pupil_eye_left = process_pupil_data(subject_loc, sample_rate, 'left') # eye_id = 1
+        processed_pupil_eye_right = process_pupil_data(subject_loc, sample_rate, 'right') # eye_id = 0
+
+        processed_pupil_left, processed_pupil_right = process_extra_data(processed_pupil_eye_left, 
+                                                                         processed_pupil_eye_right, 
+                                                                         data_loc, i)
+
+        os.makedirs(os.path.join(subject_save_loc, f'processed_pupil'), exist_ok=True)
+        save_path_left = os.path.join(subject_save_loc, f'processed_pupil', f'processed_pupil_{i}_eye_left.csv')
+        save_path_right = os.path.join(subject_save_loc, f'processed_pupil', f'processed_pupil_{i}_eye_right.csv')
+        print(save_path_left, save_path_right)
+        processed_pupil_left.to_csv(save_path_right)
+        processed_pupil_right.to_csv(save_path_left)
 
 
 if __name__=='__main__':
     num_subjects = 32
     subject_nums = list(range(101, 100+num_subjects+1))
-    data_loc = '/Users/monaabd/Desktop/pupil_exports/'
-    run(data_loc, subject_nums)
+    data_loc = '/Users/monaabd/Desktop/pupil_exports_new/'
+    save_loc = '/Users/monaabd/Desktop/pupil_processed_new/'
+    run(data_loc, save_loc, subject_nums)
