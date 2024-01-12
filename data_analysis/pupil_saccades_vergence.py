@@ -357,7 +357,7 @@ def run_on_segment(files_loc, subject_id):
             combined.to_csv(output_sav_path)
 
 
-def run(subjects, data_loc):
+def run(subjects):
     for subject_id in subjects:
         #TODO: pull out the file paths so its not hard codded in a fxn
         run_on_segment('/Users/kevinzhu/Desktop/MemEye/pupil_segmented_new', subject_id)
