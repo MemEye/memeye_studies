@@ -158,6 +158,7 @@ def saccade_params(dataframe, minlen=5, maxvel=40, maxacc=340):
                 # ignore saccades that did not last long enough
                 if dur >= minlen:
                     # add to saccade ends
+                    # TODO: check these here
                     Esac.append([t1, t2, dur, x[t1i], y[t1i], x[t2i], y[t2i]])
                 else:
                     # remove last saccade start on too low duration
@@ -208,7 +209,7 @@ def saccade_params(dataframe, minlen=5, maxvel=40, maxacc=340):
         len_list = []
         vel_list = []
         ang_list = []
-        
+
     array_dur = np.array(dur_list)
     array_len = np.array(len_list)
     array_vel = np.array(vel_list)
@@ -287,10 +288,10 @@ def saccade_params(dataframe, minlen=5, maxvel=40, maxacc=340):
         sac_dir_W = 0
         sac_dir_NW = 0
         
-    print(array_len.mean())
 
     sac_result = {
-        #TODO: add in start and end times here
+        'sac_start_timestamp': start_list,
+        'sac_end_timestamp': end_list,
         'sac_count': sac_count,
         'sac_array_dir': array_dir,
         'sac_array_len': array_len,
@@ -332,13 +333,33 @@ def convert_sac_to_df(sac_result):
     return pd.DataFrame(sac_result)
 
 def append_sac_result(df, sac_result):
-    #TODO: use merge_asof 
-    return pd.concat([df, sac_result], ignore_index=True)
+    sac_result['sac_start_timestamp'] = sac_result['sac_start_timestamp'] / 1000
+    sac_result['sac_end_timestamp'] = sac_result['sac_end_timestamp'] / 1000
+#todo: check how the timstamps are calculated, see if there are other multiplcations errors in other data
+    combined = pd.merge_asof(df, 
+                            sac_result, 
+                            left_on='pupil_timestamp',
+                            right_on='sac_start_timestamp', 
+                            direction='nearest')
+    cols_to_fix = set(sac_result.columns)
+    cols_to_fix.remove('sac_start_timestamp')
+    cols_to_fix.remove('sac_end_timestamp')
+    
+    for col in cols_to_fix:
+        combined[col] = np.where((combined['pupil_timestamp'] >= combined['sac_start_timestamp']) 
+                                 & (combined['pupil_timestamp'] < combined['sac_end_timestamp']), 
+                                 combined[col], np.nan)
+    
+    # remove the saccade timestmap columns df.drop
+    
+    combined.drop(['sac_start_timestamp', 'sac_end_timestamp'], axis=1)
+    return combined
 
-def run_on_segment(files_loc, subject_id):
-    segments = ['segmented_left/learning', 'segmented_left/negative', 'segmented_left/practice', 'segmented_left/recall', 'segmented_left/recognition_new', 'segmented_left/recognition_familiar, segmented_right/learning', 'segmented_right/negative', 'segmented_right/practice', 'segmented_right/recall', 'segmented_right/recognition_new', 'segmented_right/recognition_familiar']
+def run_on_segment(files_loc, subject_id, eye):
+    segments = ['learning', 'negative', 'practice', 'recall', 'recognition_new', 'recognition_familar']
 
-    files_loc = f'/Users/kevinzhu/Desktop/MemEye/pupil_segmented_new/{subject_id}' # fill this in
+    files_loc = f'/Users/kevinzhu/Desktop/MemEye/pupil_segmented_new/{subject_id}/{eye}' # fill this in
+    save_loc = f'/Users/kevinzhu/Desktop/MemEye/pupil_segmented_sac/{subject_id}/{eye}'
     for segment in segments:
         files = []
         segment_path = os.path.join(files_loc, segment)
@@ -347,13 +368,13 @@ def run_on_segment(files_loc, subject_id):
         for file in files:
             df = pd.read_csv(file)
             new_segment = os.path.dirname(file)
-            save_path = os.path.join(files_loc, new_segment)
+            save_path = os.path.join(save_loc, new_segment)
             os.makedirs(save_path, exist_ok=True)
 
             df1 = preprocess_xy(df)
-            sac_result = saccade_params(df)
+            sac_result = saccade_params(df1)
             sac_result = convert_sac_to_df(sac_result)
-            combined = append_sac_result(df, sac_result)
+            combined = append_sac_result(df1, sac_result)
 
             output_sav_path = os.path.join(save_path, 'SOMETHING.csv')
             combined.to_csv(output_sav_path)
@@ -362,9 +383,11 @@ def run_on_segment(files_loc, subject_id):
 def run(subjects):
     for subject_id in subjects:
         #TODO: pull out the file paths so its not hard codded in a fxn
-        run_on_segment('/Users/kevinzhu/Desktop/MemEye/pupil_segmented_new', subject_id)
+        
+        run_on_segment('/Users/kevinzhu/Desktop/MemEye/pupil_segmented_new', subject_id, 'segmented_left')
+        run_on_segment('/Users/kevinzhu/Desktop/MemEye/pupil_segmented_new', subject_id, 'segmented_right')
 
 if __name__=='__main__':
-    num_subjects = 1
+    num_subjects = 5
     subjects = list(range(101, 100+num_subjects+1))
     run(subjects)
