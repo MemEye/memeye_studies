@@ -280,12 +280,44 @@ def saccade_params(dataframe, minlen=5, maxvel=40, maxacc=340):
         sac_dir_W = 0
         sac_dir_NW = 0
         
-    print(array_len.mean())    
-    return ([array_dir,array_len,sac_count, sac_dur_mean, sac_dur_median, sac_dur_max, sac_dur_var, sac_dur_sd, 
-            sac_dur_skew, sac_dur_kurt,sac_len_mean,sac_len_median,sac_len_max,sac_len_var,
-            sac_len_sd,sac_len_skew,sac_len_kurt,sac_vel_mean,sac_vel_median,sac_vel_max,
-            sac_vel_var,sac_vel_sd, sac_vel_skew, sac_vel_kurt, sac_dir_N, sac_dir_NE, 
-            sac_dir_E, sac_dir_SE, sac_dir_S, sac_dir_SW, sac_dir_W, sac_dir_NW])
+    print(array_len.mean())
+
+    sac_result = {
+        'sac_count': sac_count,
+        'sac_array_dir': array_dir,
+        'sac_array_len': array_len,
+        'sac_dur_mean': sac_dur_mean,
+        'sac_dur_median': sac_dur_median,
+        'sac_dur_max': sac_dur_max,
+        'sac_dur_var': sac_dur_var,
+        'sac_dur_sd': sac_dur_sd,
+        'sac_dur_skew': sac_dur_skew,
+        'sac_dur_kurt': sac_dur_kurt,
+        'sac_len_mean': sac_len_mean,
+        'sac_len_median': sac_len_median,
+        'sac_len_max': sac_len_max,
+        'sac_len_var': sac_len_var,
+        'sac_len_sd': sac_len_sd,
+        'sac_len_skew': sac_len_skew,
+        'sac_len_kurt': sac_len_kurt,
+        'sac_vel_mean': sac_vel_mean,
+        'sac_vel_median': sac_vel_median,
+        'sac_vel_max': sac_vel_max,
+        'sac_vel_var': sac_vel_var,
+        'sac_vel_sd': sac_vel_sd,
+        'sac_vel_skew': sac_vel_skew,
+        'sac_vel_kurt': sac_vel_kurt,
+        'sac_dir_N': sac_dir_N,
+        'sac_dir_NE': sac_dir_NE,
+        'sac_dir_E': sac_dir_E,
+        'sac_dir_SE': sac_dir_SE,
+        'sac_dir_S': sac_dir_S,
+        'sac_dir_SW': sac_dir_SW,
+        'sac_dir_W': sac_dir_W,
+        'sac_dir_NW': sac_dir_NW
+    }
+
+    return sac_result
 
 # TODO: psuedocode, change as needed, nothing is set in stone :)
 def convert_sac_to_df(sac_result):
