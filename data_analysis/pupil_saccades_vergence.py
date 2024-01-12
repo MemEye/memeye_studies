@@ -13,8 +13,6 @@ from math import atan2,degrees
 from scipy.stats import skew, kurtosis
 
 
-data = pd.read_csv("processed_pupil_102.csv", low_memory=False)
-
 hampelwindow = 10 # hampel filter (median filter) window size 
 L_pupil_base = 3.5
 R_pupil_base = 3.5
@@ -99,12 +97,12 @@ def saccade_params(dataframe, minlen=5, maxvel=40, maxacc=340):
     input_df = dataframe.copy()
     
     # Remove rows with missing x or y
-    xy_df = input_df.dropna(subset=['x_int', 'y_int'])
+    xy_df = input_df.dropna(subset=['norm_pos_x', 'norm_pos_y'])
     xy_df = xy_df.reset_index()
     width = 1920
     height = 1080
-    x = xy_df['x_int']*width # convert to pixels
-    y = xy_df['y_int']*height 
+    x = xy_df['norm_pos_x']*width # convert to pixels
+    y = xy_df['norm_pos_y']*height 
     time = xy_df['pupil_timestamp']*1000 # convert to ms
 
     Ssac = []
@@ -289,46 +287,40 @@ def saccade_params(dataframe, minlen=5, maxvel=40, maxacc=340):
             sac_vel_var,sac_vel_sd, sac_vel_skew, sac_vel_kurt, sac_dir_N, sac_dir_NE, 
             sac_dir_E, sac_dir_SE, sac_dir_S, sac_dir_SW, sac_dir_W, sac_dir_NW])
 
-d1 = preprocess_xy(data)
-sac_result = saccade_params(d1)
-
-
-
 # TODO: psuedocode, change as needed, nothing is set in stone :)
 def convert_sac_to_df(sac_result):
-    pass
+    return pd.DataFrame(sac_result)
 
 def append_sac_result(df, sac_result):
-    pass
+    return pd.concat([df, sac_result], ignore_index=True)
 
 def run_on_segment(files_loc, subject_id):
-    segments = ['negative', 'recognition_new', 'recognition_familiar', 'recall', 'learning']
-    files = []
-    sav_dir = f'/Users/kevin/Desktop/pupil_segmente_saccades/{subject_id}' # fill this in
-    for segment in segments:
-        segment_path = os.path.join(files_loc, segment)
-        files += os.listdir(segment_path) # add in some filtering for only csvs
+    segments = ['segmented_left/learning', 'segmented_left/negative', 'segmented_left/practice', 'segmented_left/recall', 'segmented_left/recognition_new', 'segmented_left/recognition_familiar, segmented_right/learning', 'segmented_right/negative', 'segmented_right/practice', 'segmented_right/recall', 'segmented_right/recognition_new', 'segmented_right/recognition_familiar']
 
-    for file in files:
-        df = pd.read_csv(file)
-        segment = None # fill this in
-        save_path = os.path.join(sav_dir, segment)
-        os.makedirs(save_path, exist_ok=True)
-        sac_result = saccade_params(df)
-        sac_result = convert_sac_to_df(sac_result)
-        combined = append_sac_result(df, sac_result)
-        output_sav_path = os.path.join(save_path, 'SOMETHING.csv')
-        combined.to_csv(output_sav_path)
+    files_loc = f'/Users/kevinzhu/Desktop/MemEye/pupil_segmented_new/{subject_id}' # fill this in
+    for segment in segments:
+        files = []
+        segment_path = os.path.join(files_loc, segment)
+        files += [os.path.join(segment_path, f) for f in os.listdir(segment_path) if f.endswith('.csv')]
+        
+        for file in files:
+            df = pd.read_csv(file)
+            new_segment = os.path.dirname(file)
+            save_path = os.path.join(files_loc, new_segment)
+            os.makedirs(save_path, exist_ok=True)
+
+            df1 = preprocess_xy(df)
+            sac_result = saccade_params(df)
+            sac_result = convert_sac_to_df(sac_result)
+            combined = append_sac_result(df, sac_result)
+
+            output_sav_path = os.path.join(save_path, 'SOMETHING.csv')
+            combined.to_csv(output_sav_path)
+
 
 def run(subjects):
     for subject_id in subjects:
-        run_on_segment()
+        run_on_segment('/Users/kevinzhu/Desktop/MemEye/pupil_segmented_new', subject_id)
 
-        
-
-with open('processed_with_saccades.csv', 'w', newline='') as file:
-    writer = csv.writer(file)
-    writer.writerow(data)
-    writer.writerow(sac_result)
-
-print(sac_result[1])
+subjects = [str(i) for i in range(101, 133)]
+run(subjects)
