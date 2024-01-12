@@ -332,6 +332,7 @@ def convert_sac_to_df(sac_result):
     return pd.DataFrame(sac_result)
 
 def append_sac_result(df, sac_result):
+    #TODO: use merge_asof 
     return pd.concat([df, sac_result], ignore_index=True)
 
 def run_on_segment(files_loc, subject_id):
@@ -358,7 +359,7 @@ def run_on_segment(files_loc, subject_id):
             combined.to_csv(output_sav_path)
 
 
-def run(subjects, data_loc):
+def run(subjects):
     for subject_id in subjects:
         #TODO: pull out the file paths so its not hard codded in a fxn
         run_on_segment('/Users/kevinzhu/Desktop/MemEye/pupil_segmented_new', subject_id)
