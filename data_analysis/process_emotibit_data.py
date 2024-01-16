@@ -146,18 +146,21 @@ def process_emotibit_data(emotibit_data_path, pupil_path):
     
     return merged
 
-def run(data_loc, subject_nums):
+def run(parsed_loc, pupil_data_loc, save_loc, subject_nums):
     for subject_id in subject_nums:
-        emotibit_data_path = os.path.join(data_loc, str(subject_id), 'parsed_emotibit')
-        pupil_path = os.path.join(data_loc, str(subject_id), f'processed', f'processed_pupil_{subject_id}.csv')
-
+        emotibit_data_path = os.path.join(parsed_loc, str(subject_id), 'parsed_emotibit')
+        pupil_path = os.path.join(pupil_data_loc, str(subject_id), 'processed_pupil', f'processed_pupil_{subject_id}_eye_right.csv')
         processed_emotibit = process_emotibit_data(emotibit_data_path, pupil_path)
 
-        save_path = os.path.join(data_loc, str(subject_id), f'processed', f'processed_emotibit_{subject_id}.csv')
+        save_path = os.path.join(save_loc, str(subject_id))
+        os.makedirs(save_path, exist_ok=True)
+        save_path = os.path.join(save_path, f'processed_emotibit_{subject_id}.csv')
         processed_emotibit.to_csv(save_path)
 
 if __name__=='__main__':
-    num_subjects = 32
-    subject_nums = list(range(101, 100+num_subjects+1))
-    data_loc = '/Users/monaabd/Desktop/pupil_exports/'
-    run(data_loc, subject_nums)
+    num_subjects = 1
+    subject_nums = list(range(105, 105+num_subjects+1))
+    parsed_loc = '/Users/monaabd/Desktop/pupil_exports/'
+    pupil_data_loc = '/Users/monaabd/Desktop/pupil_processed_new_updated/'
+    save_loc = '/Users/monaabd/Desktop/emotibit_processed/'
+    run(parsed_loc, pupil_data_loc, save_loc, subject_nums)

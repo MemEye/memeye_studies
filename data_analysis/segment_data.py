@@ -63,26 +63,28 @@ def save_segments(grouped_dfs, segmented_path):
                 break_count+=1
             
 
-def run_emotibit(data_loc, subject_nums):
+def run_emotibit(data_loc, save_loc, subject_nums):
     for subject_id in subject_nums:
-        data_path = os.path.join(data_loc, f'{subject_id}/processed/')
+        data_path = os.path.join(data_loc, f'{subject_id}')
 
         emotibit_path = os.path.join(data_path, f'processed_emotibit_{subject_id}.csv')
-        emotibit_segmented_path = os.path.join(data_path, 'segmented/emotibit/')
+        emotibit_segmented_path = os.path.join(save_loc, f'{subject_id}/')
         emotibit_large = pd.read_csv(emotibit_path)
         grouped_dfs = segment_dataframe(emotibit_large, 'label')
+        # print(emotibit_segmented_path, subject_id)
         save_segments(grouped_dfs, emotibit_segmented_path)
 
 
-def run_pupil(data_loc, subject_nums):
+def run_pupil(data_loc, save_loc, subject_nums):
     for subject_id in subject_nums:
         data_path = os.path.join(data_loc, f'{subject_id}/processed_pupil/')
 
         pupil_path_left = os.path.join(data_path, f'processed_pupil_{subject_id}_eye_left.csv')
         pupil_path_right = os.path.join(data_path, f'processed_pupil_{subject_id}_eye_right.csv')
         
-        pupil_segmented_path_left = os.path.join(data_path, 'segmented_left/')
-        pupil_segmented_path_right = os.path.join(data_path, 'segmented_right/')
+        pupil_segmented_path_left = os.path.join(save_loc, str(subject_id), 'segmented_left/')
+        pupil_segmented_path_right = os.path.join(save_loc, str(subject_id), 'segmented_right/')
+        print(pupil_segmented_path_left)
         pupil_left = pd.read_csv(pupil_path_left)
         pupil_right = pd.read_csv(pupil_path_right)
 
@@ -99,9 +101,11 @@ if __name__=='__main__':
         images_to_info = json.load(file)
     num_subjects = 32
     subject_nums = list(range(101, 100+num_subjects+1))
-    data_loc = '/Users/monaabd/Desktop/processed_data/'
-    # run_emotibit(data_loc, subject_nums)
-    pupil_data_loc = '/Users/monaabd/Desktop/pupil_processed_new/'
-    run_pupil(pupil_data_loc, subject_nums)
+    data_loc = '/Users/monaabd/Desktop/emotibit_processed/'
+    save_loc = '/Users/monaabd/Desktop/emotibit_segmented/'
+    run_emotibit(data_loc, save_loc, subject_nums)
+    # pupil_data_loc = '/Users/monaabd/Desktop/pupil_processed_new_updated/'
+    # save_loc = '/Users/monaabd/Desktop/pupil_segmented_new_updated/'
+    # run_pupil(pupil_data_loc, save_loc, subject_nums)
 
 

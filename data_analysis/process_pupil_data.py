@@ -86,13 +86,11 @@ def process_pupil_data(rec_dir, sample_rate, eye_id):
         s['data_dir'], eye_id=eye_id, method='3d')
     
     events = utils.load_annotations(s['data_dir'])
-    
-    #TODO: load fixations
-    #TODO: see if we can load both eyes?
-    #TODO: load blinks
-    #TODO: load gazes
     events.reset_index(inplace=True)
-    events = events.iloc[14:]
+    first_index = events[events['label'] == 'practice learning'].index[0]
+    first_index_jpg = events[events['label'].str.contains('.jpg')].index[0]
+    first_index = min(first_index, first_index_jpg)
+    events = events.iloc[first_index:]
     events = events[['timestamp', 'label']]
 
     events_jpg = events[events.label.str.contains('jpg')]
@@ -314,5 +312,5 @@ if __name__=='__main__':
     num_subjects = 32
     subject_nums = list(range(101, 100+num_subjects+1))
     data_loc = '/Users/monaabd/Desktop/pupil_exports_new/'
-    save_loc = '/Users/monaabd/Desktop/pupil_processed_new/'
+    save_loc = '/Users/monaabd/Desktop/pupil_processed_new_updated/'
     run(data_loc, save_loc, subject_nums)

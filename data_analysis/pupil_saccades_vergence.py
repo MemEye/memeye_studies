@@ -28,9 +28,9 @@ def hampel_filter_forloop_numba(input_series, window_size, n_sigmas=3):
         if not np.all(np.isnan(input_series[(i - window_size):(i + window_size)])):
             x0 = np.nanmedian(input_series[(i - window_size):(i + window_size)])
             S0 = k * np.nanmedian(np.abs(input_series[(i - window_size):(i + window_size)] - x0))
-        if (np.abs(input_series[i] - x0) > n_sigmas * S0):
-            new_series[i] = x0
-            indices.append(i)
+            if (np.abs(input_series[i] - x0) > n_sigmas * S0):
+                new_series[i] = x0
+                indices.append(i)
     
     return new_series, indices
 
@@ -351,13 +351,27 @@ def append_sac_result(df, sac_result):
 def run_on_segment(global_loc, subject_id, eye):
     segments = ['learning', 'negative', 'practice', 'recall', 'recognition_new', 'recognition_familar']
 
-    files_loc = os.path.join(global_loc, f'pupil_segmented_new/{subject_id}/{eye}') # fill this in
-    save_loc = os.path.join(global_loc, f'pupil_segmented_sac/{subject_id}/{eye}')
+    files_loc = os.path.join(global_loc, f'pupil_segmented_new_updated/{subject_id}/{eye}') # fill this in
+    save_loc = os.path.join(global_loc, f'pupil_segmented_sac_updated/{subject_id}/{eye}')
+    
+    cols_to_drop = ['world_index', 'eye_id', 'confidence', 'method',
+                    'model_confidence', 'model_id', 'image', 'fixations_confidence',	
+                    'fixations_method', 'x_ham', 'y_ham']
+    
+    sac_summary_cols = ['sac_count','sac_array_len','sac_dur_mean', 'sac_dur_median',
+                    'sac_dur_max', 'sac_dur_var', 'sac_dur_sd', 'sac_dur_skew',
+                    'sac_dur_kurt', 'sac_len_mean', 'sac_len_median', 'sac_len_max',
+                    'sac_len_var', 'sac_len_sd', 'sac_len_skew', 'sac_len_kurt',
+                    'sac_vel_mean', 'sac_vel_median', 'sac_vel_max', 'sac_vel_var',
+                    'sac_vel_sd', 'sac_vel_skew', 'sac_vel_kurt', 'sac_dir_N',
+                    'sac_dir_NE', 'sac_dir_E', 'sac_dir_SE', 'sac_dir_S',
+                    'sac_dir_SW', 'sac_dir_W', 'sac_dir_NW']
+    
     for segment in tqdm(segments):
         files = []
         segment_path = os.path.join(files_loc, segment)
         files += [os.path.join(segment_path, f) for f in os.listdir(segment_path) if f.endswith('.csv')]
-        
+        saccade_summary = dict()
         for file in tqdm(files):
             df = pd.read_csv(file)
             save_path = os.path.join(save_loc, segment)
@@ -373,7 +387,31 @@ def run_on_segment(global_loc, subject_id, eye):
             for col in combined:
                 if 'unnamed' in col.lower():
                     combined.drop(col, inplace=True, axis=1)
+
+            combined.drop(columns=cols_to_drop, inplace=True)
+
+            # generate the saccade summary dataframe
+            if 'filename' in saccade_summary.keys():
+                saccade_summary['filename'].append(filename)
+            else:
+                saccade_summary['filename'] = [filename]
+            for col in sac_summary_cols:
+                try:
+                    loc = combined[col].first_valid_index()
+                    val = combined[col].iloc[loc]
+                except:
+                    print(f'no valid loc for col {col} in {filename}')
+                    val = float('nan')
+                if col in saccade_summary.keys():
+                    saccade_summary[col].append(val)
+                else:
+                    saccade_summary[col] = [val]
+            combined.drop(columns=sac_summary_cols, inplace=True)
             combined.to_csv(output_sav_path)
+
+        sac_summary_df = pd.DataFrame(saccade_summary)
+        sac_summary_path = os.path.join(save_path, 'saccade_summary.csv')
+        sac_summary_df.to_csv(sac_summary_path)
 
 
 def run(subjects):
@@ -382,9 +420,7 @@ def run(subjects):
         run_on_segment(global_loc, subject_id, 'segmented_left')
         run_on_segment(global_loc, subject_id, 'segmented_right')
 
-#TODO: how are x_ham	y_ham	x_int	y_int relevant?
-
 if __name__=='__main__':
-    num_subjects = 1
+    num_subjects = 32
     subjects = list(range(101, 100+num_subjects+1))
     run(subjects)
