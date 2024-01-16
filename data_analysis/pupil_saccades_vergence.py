@@ -367,12 +367,12 @@ def run_on_segment(global_loc, subject_id, eye):
                     'sac_dir_NE', 'sac_dir_E', 'sac_dir_SE', 'sac_dir_S',
                     'sac_dir_SW', 'sac_dir_W', 'sac_dir_NW']
     
-    for segment in tqdm(segments):
+    for segment in segments:
         files = []
         segment_path = os.path.join(files_loc, segment)
         files += [os.path.join(segment_path, f) for f in os.listdir(segment_path) if f.endswith('.csv')]
         saccade_summary = dict()
-        for file in tqdm(files):
+        for file in files:
             df = pd.read_csv(file)
             save_path = os.path.join(save_loc, segment)
             os.makedirs(save_path, exist_ok=True)
@@ -415,7 +415,7 @@ def run_on_segment(global_loc, subject_id, eye):
 
 
 def run(subjects):
-    for subject_id in subjects:
+    for subject_id in tqdm(subjects):
         global_loc = '/Users/monaabd/Desktop/'
         run_on_segment(global_loc, subject_id, 'segmented_left')
         run_on_segment(global_loc, subject_id, 'segmented_right')
