@@ -16,7 +16,22 @@ def load_subject_data(subject, data_loc):
     cols_to_drop = ['sac_array_dir', 'blinks_confidence', 'is_blink', 
                 'label', 'is_question', 'is_verbal', 'remembered', 
                 'resp_confidence', 'pupil_timestamp']
-    #TODO: fill this in
+    baseline_loc = os.path.join(data_loc, 'negative', 'baseline.csv')
+    segment_to_df['baseline'] = pd.read_csv(baseline_loc).drop(columns=cols_to_drop)
+
+    for segment in segment_to_df:
+        if segment != 'baseline':
+            csv_files = glob.glob(os.path.join(data_loc, segment, '*.csv'))
+            merged_df = None
+            for file in csv_files:
+                if 'saccade_summary' not in file:
+                    if merged_df is None:
+                        merged_df = pd.read_csv(file)
+                    else:
+                        file_df = pd.read_csv(file)
+                        pd.concat([merged_df, file_df], ignore_index=True)
+            merged_df.drop(columns=cols_to_drop, inplace=True)
+            segment_to_df[segment] = merged_df
     return segment_to_df
 
 def get_max_min_channels(df):
@@ -79,15 +94,17 @@ def merge_df_dicts(global_df_dict, subject_df_dict):
             global_df_dict[segment] = subject_df_dict[segment]
 
 def save_stats_dict(stats_dict, save_loc):
-    pass
-    #TODO
+    for segment in stats_dict:
+        segment_df = pd.DataFrame(stats_dict[segment])
+        segment_save_loc = os.path.join(save_loc, f'{segment}_analysis.csv')
+        segment_df.to_csv(segment_save_loc)
 
 def run(subjects, data_loc, save_loc, eye):
     global_df_dict = dict()
     stats_dict = None
     
     for subject in subjects:
-        subject_data_loc = None #TODO
+        subject_data_loc = os.path.join(data_loc, str(subject), f'segmented_{eye}')
         subject_df_dict = load_subject_data(subject, subject_data_loc)
         global_df_dict = merge_df_dicts(global_df_dict, subject_df_dict)
         subject_cols_to_max_min = get_max_min_df_dict(subject_df_dict)
@@ -105,14 +122,16 @@ def run(subjects, data_loc, save_loc, eye):
     stats_dict = merge_stats_dict(stats_dict, 
                                   calc_stats_df_dict(global_normalized_df_dict, 'global'))
 
-    save_loc = save_loc # TODO: update this
+    save_loc = os.path.join(save_loc, f'{eye}_eye')
+    os.makedirs(save_loc, exist_ok=True)
     save_stats_dict(stats_dict, save_loc)
 
 if __name__=='__main__':
     num_subjects = 2
     subjects = list(range(101, 100+num_subjects+1))
-    data_loc = ''
-    save_loc = ''
+    data_loc = '/Users/monaabd/Desktop/pupil_segmented_sac_updated/'
+    save_loc = '/Users/monaabd/Desktop/pupil_mean_var_data/'
 
-    run(subjects, data_loc, save_loc, 'left') #TODO: do this for left and right eye
+    run(subjects, data_loc, save_loc, 'left')
     run(subjects, data_loc, save_loc, 'right')
+    # TODO: test this code/script
