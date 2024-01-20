@@ -101,6 +101,11 @@ def merge_df_dicts(global_df_dict, subject_df_dict):
 def save_stats_dict(stats_dict, save_loc):
     for segment in stats_dict:
         segment_df = pd.DataFrame(stats_dict[segment])
+        cols_to_drop = []
+        for col in segment_df.columns:
+            if 'Unnamed' in col:
+                cols_to_drop.append(col)
+        segment_df.drop(columns=cols_to_drop, inplace=True)
         segment_save_loc = os.path.join(save_loc, f'{segment}_analysis.csv')
         segment_df.to_csv(segment_save_loc)
 
