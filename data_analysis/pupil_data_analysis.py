@@ -15,7 +15,7 @@ def load_subject_data(subject, data_loc):
         }
     cols_to_drop = ['sac_array_dir', 'blinks_confidence', 'is_blink', 
                 'label', 'is_question', 'is_verbal', 'remembered', 
-                'resp_confidence', 'pupil_timestamp']
+                'resp_confidence', 'pupil_timestamp', 'gaze_base_data']
     baseline_loc = os.path.join(data_loc, 'negative', 'baseline.csv')
     segment_to_df['baseline'] = pd.read_csv(baseline_loc).drop(columns=cols_to_drop)
 
@@ -55,8 +55,12 @@ def get_max_min_df_dict(df_dict):
 
 def normalize_df(df, cols_to_max_min):
     ret_df = df.copy()
-    for col in df.cols:
+    for col in df.columns:
         col_max, col_min = cols_to_max_min[col]
+        if (col_min == 0 or col_min == 0.0) and (col_max == 0 or col_max == 0.0):
+            continue
+        if col_min == col_max:
+            col_min = 0
         ret_df[col] = ret_df[col] - col_min / (col_max - col_min)
     return ret_df
 
@@ -88,10 +92,11 @@ def merge_stats_dict(old_stats_dict, new_stats_dict):
 
 def merge_df_dicts(global_df_dict, subject_df_dict):
     for segment in subject_df_dict:
-        if segment in global_df_dict:
+        if segment in global_df_dict.keys():
             global_df_dict[segment] = pd.concat([global_df_dict[segment], subject_df_dict[segment]], ignore_index=True)
         else:
             global_df_dict[segment] = subject_df_dict[segment]
+    return global_df_dict
 
 def save_stats_dict(stats_dict, save_loc):
     for segment in stats_dict:
@@ -127,11 +132,10 @@ def run(subjects, data_loc, save_loc, eye):
     save_stats_dict(stats_dict, save_loc)
 
 if __name__=='__main__':
-    num_subjects = 2
+    num_subjects = 32
     subjects = list(range(101, 100+num_subjects+1))
     data_loc = '/Users/monaabd/Desktop/pupil_segmented_sac_updated/'
     save_loc = '/Users/monaabd/Desktop/pupil_mean_var_data/'
 
     run(subjects, data_loc, save_loc, 'left')
     run(subjects, data_loc, save_loc, 'right')
-    # TODO: test this code/script
