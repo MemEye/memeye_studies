@@ -1,14 +1,14 @@
 from torch import nn
 import torch
 class LSTMModel(nn.Module):
-    def __init__(self, input_dim, hidden_dim, layer_dim, output_dim, dropout_prob):
+    def __init__(self, input_dim, hidden_dim, layer_dim, output_dim, dropout_prob,bidirectional=False):
         super(LSTMModel, self).__init__()
         self.hidden_dim = hidden_dim
         self.layer_dim = layer_dim
         self.lstm = nn.LSTM(
-            input_dim, hidden_dim, layer_dim, batch_first=True, dropout=dropout_prob
+            input_dim, hidden_dim, layer_dim, batch_first=True, dropout=dropout_prob,bidirectional=bidirectional
         )
-        self.fc = nn.Linear(hidden_dim, output_dim)
+        self.fc = nn.Linear(2*hidden_dim, output_dim)
         for name, param in self.lstm.named_parameters():
             if 'weight' in name:
                 nn.init.xavier_normal_(param)
