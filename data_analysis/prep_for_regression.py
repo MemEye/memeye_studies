@@ -64,11 +64,12 @@ def load_saccade_info(file, segment):
         df_filtered = df_filtered[df_filtered['filename'] == 'baseline']
     return df_filtered
 
-def prep_pupil_files(files, segment, eye):
+def prep_pupil_files(files, segment, eye, subject_id):
     saccade_info = None
     merged_df = {'filename': [],
                  'label': [], 
-                 'eye': []}
+                 'eye': [],
+                 'subject_id': []}
     for file in files:
         if 'saccade_summary' in file:
             saccade_info = load_saccade_info(file, segment)
@@ -83,6 +84,7 @@ def prep_pupil_files(files, segment, eye):
                 merged_df['filename'].append(image_name)
                 merged_df['label'].append(segment)
                 merged_df['eye'].append(eye)
+                merged_df['subject_id'].append(subject_id)
                 for key, value in merged_dict.items():
                     if key in merged_df:
                         merged_df[key].append(value)
@@ -102,10 +104,11 @@ def emotibit_mean_var_col(df):
     return stats_dict
 
 
-def prep_emotibit_files(files, segment):
+def prep_emotibit_files(files, segment, subject_id):
     saccade_info = None
     merged_df = {'filename': [],
-                 'label': []}
+                 'label': [],
+                 'subject_id': []}
     for file in files:
         if (segment == 'negative' and 'baseline' in file) or (segment != 'negative'):
             image_name = file.split('/')[-1][:-4]
@@ -113,6 +116,7 @@ def prep_emotibit_files(files, segment):
             mean_var = emotibit_mean_var_col(df)
             merged_df['filename'].append(image_name)
             merged_df['label'].append(segment)
+            merged_df['subject_id'].append(subject_id)
             for key, value in mean_var.items():
                 if key in merged_df:
                     merged_df[key].append(value)
@@ -129,7 +133,7 @@ def run_pupil(subjects, pupil_data_loc, eye):
         for segment in segments:
             pupil_subject_data_loc = os.path.join(pupil_data_loc, str(subject), f'segmented_{eye}', segment)
             pupil_files = glob.glob(os.path.join(pupil_subject_data_loc, '*.csv'))
-            pupil_merged_df = prep_pupil_files(pupil_files, segment, eye)
+            pupil_merged_df = prep_pupil_files(pupil_files, segment, eye, subject)
             if type(merged_df) == (pd.DataFrame):
                 merged_df = pd.concat([merged_df, pupil_merged_df])
             else:
@@ -143,7 +147,7 @@ def run_emotibit(subjects, emotibit_data_loc):
         for segment in segments:
             emotibit_subject_data_loc = os.path.join(emotibit_data_loc, str(subject), segment)
             emotibit_files = glob.glob(os.path.join(emotibit_subject_data_loc, '*.csv'))
-            emotibit_merged_df = prep_emotibit_files(emotibit_files, segment)
+            emotibit_merged_df = prep_emotibit_files(emotibit_files, segment, subject)
             if type(merged_df) == (pd.DataFrame):
                 merged_df = pd.concat([merged_df, emotibit_merged_df])
             else:
@@ -152,20 +156,20 @@ def run_emotibit(subjects, emotibit_data_loc):
 # emotibit: drope verything not PPG EDA Temp, SCR
 
 def merge_eye_emotibit(eye_df, emotibit_df):
-    merged = pd.merge(eye_df, emotibit_df, on='filename')
+    merged = pd.merge(eye_df, emotibit_df, on=['filename', 'subject_id', 'label'])
     return merged
 
 def merge_left_right(left, right, save_path):
     merged = pd.concat([left, right])
     merged.reset_index(inplace=True)
-    merged.drop(columns=['label_y', 'index'], inplace=True)
-    merged.rename(columns={'label_x': 'label'}, inplace=True)
+    # merged.drop(columns=['label_y', 'index'], inplace=True)
+    # merged.rename(columns={'label_x': 'label'}, inplace=True)
     os.makedirs(save_path, exist_ok=True)
     merged.to_csv(os.path.join(save_path, 'prepared.csv'))
     
 
 if __name__=='__main__':
-    num_subjects = 1
+    num_subjects = 32
     subjects = list(range(101, 100+num_subjects+1))
     pupil_data_loc = '/Users/monaabd/Desktop/pupil_segmented_sac_updated/'
     emotibit_data_loc = '/Users/monaabd/Desktop/emotibit_segmented_new/'
