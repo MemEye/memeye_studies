@@ -20,10 +20,11 @@ tag_type_to_sr = {
     'TH': 7.5,
     'EA': 15, 
     'EL': 15, 
+    'HR': 15
 }
 
 file_types_to_process = {'AX', 'AY', 'AZ', 'GX', 'GY', 'GZ', 'MX', 'MY', 'MZ',
-                        'PI', 'PG',  'PR', 'T1', 'TH', 'EA', 'EL', 'LM', 'SA', 'SR', 'SF'}
+                        'PI', 'PG',  'PR', 'T1', 'TH', 'EA', 'EL', 'LM', 'SA', 'SR', 'SF', 'HR'}
 frequency_to_upsample = 25
 scr = {'SA', 'SR', 'SF'}
 
@@ -158,9 +159,9 @@ def run(parsed_loc, pupil_data_loc, save_loc, subject_nums):
         processed_emotibit.to_csv(save_path)
 
 if __name__=='__main__':
-    num_subjects = 1
-    subject_nums = list(range(105, 105+num_subjects+1))
+    num_subjects = 32
+    subject_nums = list(range(101, 100+num_subjects+1))
     parsed_loc = '/Users/monaabd/Desktop/pupil_exports/'
     pupil_data_loc = '/Users/monaabd/Desktop/pupil_processed_new_updated/'
-    save_loc = '/Users/monaabd/Desktop/emotibit_processed/'
+    save_loc = '/Users/monaabd/Desktop/emotibit_processed_new/'
     run(parsed_loc, pupil_data_loc, save_loc, subject_nums)

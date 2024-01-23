@@ -64,10 +64,11 @@ def load_saccade_info(file, segment):
         df_filtered = df_filtered[df_filtered['filename'] == 'baseline']
     return df_filtered
 
-def prep_pupil_files(files, segment):
+def prep_pupil_files(files, segment, eye):
     saccade_info = None
     merged_df = {'filename': [],
-                 'label': []}
+                 'label': [], 
+                 'eye': []}
     for file in files:
         if 'saccade_summary' in file:
             saccade_info = load_saccade_info(file, segment)
@@ -81,6 +82,7 @@ def prep_pupil_files(files, segment):
                 merged_dict = {**blink_info, **fix_info, **mean_var}
                 merged_df['filename'].append(image_name)
                 merged_df['label'].append(segment)
+                merged_df['eye'].append(eye)
                 for key, value in merged_dict.items():
                     if key in merged_df:
                         merged_df[key].append(value)
@@ -91,7 +93,7 @@ def prep_pupil_files(files, segment):
     return merged
 
 def emotibit_mean_var_col(df):
-    cols_to_keep = ['T1', 'TH', 'EA', 'EL', 'PR', 'PI', 'PG', 'SA', 'SR', 'SF']
+    cols_to_keep = ['T1', 'TH', 'EA', 'EL', 'PR', 'PI', 'PG', 'SA', 'SR', 'SF', 'HR']
     df_filtered = df[cols_to_keep]
     means = df_filtered.mean()
     variances = df_filtered.var()
@@ -121,13 +123,13 @@ def prep_emotibit_files(files, segment):
 
 
 def run_pupil(subjects, pupil_data_loc, eye):
-    segments = ['negative', 'learning', 'recall', 'recognition_familar']
+    segments = ['negative', 'learning', 'recall', 'recognition_familar', 'recognition_new']
     merged_df = None
     for subject in subjects:
         for segment in segments:
             pupil_subject_data_loc = os.path.join(pupil_data_loc, str(subject), f'segmented_{eye}', segment)
             pupil_files = glob.glob(os.path.join(pupil_subject_data_loc, '*.csv'))
-            pupil_merged_df = prep_pupil_files(pupil_files, segment)
+            pupil_merged_df = prep_pupil_files(pupil_files, segment, eye)
             if type(merged_df) == (pd.DataFrame):
                 merged_df = pd.concat([merged_df, pupil_merged_df])
             else:
@@ -135,7 +137,7 @@ def run_pupil(subjects, pupil_data_loc, eye):
     return merged_df
 
 def run_emotibit(subjects, emotibit_data_loc):
-    segments = ['negative', 'learning', 'recall', 'recognition_familar']
+    segments = ['negative', 'learning', 'recall', 'recognition_familar', 'recognition_new']
     merged_df = None
     for subject in subjects:
         for segment in segments:
@@ -155,14 +157,18 @@ def merge_eye_emotibit(eye_df, emotibit_df):
 
 def merge_left_right(left, right, save_path):
     merged = pd.concat([left, right])
-    pd.to_csv(save_path)
+    merged.reset_index(inplace=True)
+    merged.drop(columns=['label_y', 'index'], inplace=True)
+    merged.rename(columns={'label_x': 'label'}, inplace=True)
+    os.makedirs(save_path, exist_ok=True)
+    merged.to_csv(os.path.join(save_path, 'prepared.csv'))
     
 
 if __name__=='__main__':
     num_subjects = 1
     subjects = list(range(101, 100+num_subjects+1))
     pupil_data_loc = '/Users/monaabd/Desktop/pupil_segmented_sac_updated/'
-    emotibit_data_loc = '/Users/monaabd/Desktop/emotibit_segmented/'
+    emotibit_data_loc = '/Users/monaabd/Desktop/emotibit_segmented_new/'
     save_loc = '/Users/monaabd/Desktop/pupil_regression_prep/'
 
     left_processed = run_pupil(subjects, pupil_data_loc, 'left')
@@ -170,4 +176,5 @@ if __name__=='__main__':
     emotibit_processed = run_emotibit(subjects, emotibit_data_loc)
     left_merged = merge_eye_emotibit(left_processed, emotibit_processed)
     right_merged = merge_eye_emotibit(right_processed, emotibit_processed)
+    merge_left_right(left_merged, right_merged, save_loc)
     

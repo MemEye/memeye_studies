@@ -101,8 +101,8 @@ if __name__=='__main__':
         images_to_info = json.load(file)
     num_subjects = 32
     subject_nums = list(range(101, 100+num_subjects+1))
-    data_loc = '/Users/monaabd/Desktop/emotibit_processed/'
-    save_loc = '/Users/monaabd/Desktop/emotibit_segmented/'
+    data_loc = '/Users/monaabd/Desktop/emotibit_processed_new/'
+    save_loc = '/Users/monaabd/Desktop/emotibit_segmented_new/'
     run_emotibit(data_loc, save_loc, subject_nums)
     # pupil_data_loc = '/Users/monaabd/Desktop/pupil_processed_new_updated/'
     # save_loc = '/Users/monaabd/Desktop/pupil_segmented_new_updated/'
