@@ -8,7 +8,8 @@ def script(model_name,folder_name,n):
     model=torch.load(model_name)
     model.eval()
     f1=open('prediction.csv','w')
-    f1.write("file_name,length,pred_negative,pred_learning,pred_recall,pred_recognition_familiar,true_label\n")
+    func=torch.nn.Softmax(dim=1)
+    f1.write("file_name,index,pred_negative,pred_learning,pred_recall,pred_recognition_familiar,true_label\n")
     for file in glob.glob(folder_name+"/*"):
         class_name = file.split("/")[-1]
         if class_name not in ["negative","learning","recall","recognition_familar"]:
@@ -22,6 +23,7 @@ def script(model_name,folder_name,n):
         elif class_name=="recognition_familar":
             class_name="3"
         for csv in glob.glob(file+"/*.csv"):
+            count=0
             csv_name = csv.split("/")[-1]
             csv_name=csv_name[:-4]
             df = pd.read_csv(csv)
@@ -32,18 +34,15 @@ def script(model_name,folder_name,n):
             df=df.values
             df=torch.tensor(df,dtype=torch.float32)
             df=df.unsqueeze(0)
-            count=[0,0,0,0]
             for i in range(0,len(df[0]),seq_length):
+                count+=1
                 x=df[0][i:i+seq_length]
                 if len(x)<seq_length:
                     x=torch.cat((x,torch.zeros(seq_length-len(x),10)))
                 x=x.unsqueeze(0)
-                output=model(x)
-                output=torch.argmax(output)
-                count[output]+=1
-            x=sum(count)
-            count=[i/x for i in count]
-            f1.write(csv_name+","+str(seq_length)+","+str(count[0])+","+str(count[1])+","+str(count[2])+","+str(count[3])+","+class_name+"\n")
+                output=func(model(x))
+                output=output.reshape(-1).tolist()
+                f1.write(csv_name+","+str(count)+","+str(output[0])+","+str(output[1])+","+str(output[2])+","+str(output[3])+","+class_name+"\n")
     f1.close()
 
 if __name__ == "__main__":
