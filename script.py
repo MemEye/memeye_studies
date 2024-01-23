@@ -24,8 +24,6 @@ def script(model_name,folder_name,n):
         for csv in glob.glob(file+"/*.csv"):
             csv_name = csv.split("/")[-1]
             csv_name=csv_name[:-4]
-            if csv_name[-3:]!="jpg":
-                continue
             df = pd.read_csv(csv)
             df=df[['T1','TH','EA','EL','PI','PR','PG','SF','SR','SA']]
             for col in df.columns:
