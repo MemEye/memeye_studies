@@ -3,16 +3,24 @@ import torch
 import glob
 import pandas as pd
 
-def script(model_name,folder_name, n):
+def script(model_name,folder_name,n):
     seq_length=int(n*25)
     model=torch.load(model_name)
     model.eval()
     f1=open('prediction.csv','w')
-    f1.write("file_name,length,pred_negative,pred_learning,pred_recall,pred_recognition_familiar\n")
+    f1.write("file_name,length,pred_negative,pred_learning,pred_recall,pred_recognition_familiar,true_label\n")
     for file in glob.glob(folder_name+"/*"):
         class_name = file.split("/")[-1]
         if class_name not in ["negative","learning","recall","recognition_familar"]:
             continue
+        if class_name=="negative":
+            class_name="0"
+        elif class_name=="learning":
+            class_name="1"
+        elif class_name=="recall":
+            class_name="2"
+        elif class_name=="recognition_familar":
+            class_name="3"
         for csv in glob.glob(file+"/*.csv"):
             csv_name = csv.split("/")[-1]
             csv_name=csv_name[:-4]
@@ -37,7 +45,7 @@ def script(model_name,folder_name, n):
                 count[output]+=1
             x=sum(count)
             count=[i/x for i in count]
-            f1.write(csv_name+","+str(seq_length)+","+str(count[0])+","+str(count[1])+","+str(count[2])+","+str(count[3])+"\n")
+            f1.write(csv_name+","+str(seq_length)+","+str(count[0])+","+str(count[1])+","+str(count[2])+","+str(count[3])+","+class_name+"\n")
     f1.close()
 
 if __name__ == "__main__":
