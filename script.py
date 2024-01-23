@@ -7,18 +7,17 @@ def script(model_name,folder_name, n):
     seq_length=int(n*25)
     model=torch.load(model_name)
     model.eval()
-    f1=open('negative.csv','w')
-    f1.write("file_name,label,length\n")
-    f2=open('learning.csv','w')
-    f2.write("file_name,label,length\n")
-    f3=open('recall.csv','w')
-    f3.write("file_name,label,length\n")
-    f4=open('recognition_familar.csv','w')
-    f4.write("file_name,label,length\n")
+    f1=open('prediction.csv','w')
+    f1.write("file_name,length,pred_negative,pred_learning,pred_recall,pred_recognition_familiar\n")
     for file in glob.glob(folder_name+"/*"):
         class_name = file.split("/")[-1]
+        if class_name not in ["negative","learning","recall","recognition_familar"]:
+            continue
         for csv in glob.glob(file+"/*.csv"):
             csv_name = csv.split("/")[-1]
+            csv_name=csv_name[:-4]
+            if csv_name[-3:]!="jpg":
+                continue
             df = pd.read_csv(csv)
             df=df[['T1','TH','EA','EL','PI','PR','PG','SF','SR','SA']]
             for col in df.columns:
@@ -36,14 +35,10 @@ def script(model_name,folder_name, n):
                 output=model(x)
                 output=torch.argmax(output)
                 count[output]+=1
-            f1.write(csv+","+str(count[0]/sum(count))+","+str(seq_length)+"\n")
-            f2.write(csv+","+str(count[1]/sum(count))+","+str(seq_length)+"\n")
-            f3.write(csv+","+str(count[2]/sum(count))+","+str(seq_length)+"\n")
-            f4.write(csv+","+str(count[3]/sum(count))+","+str(seq_length)+"\n")
+            x=sum(count)
+            count=[i/x for i in count]
+            f1.write(csv_name+","+str(seq_length)+","+str(count[0])+","+str(count[1])+","+str(count[2])+","+str(count[3])+"\n")
     f1.close()
-    f2.close()
-    f3.close()
-    f4.close()
 
 if __name__ == "__main__":
     script('model3/3_16/model39.pt','emotibit_segmented/101',3)
