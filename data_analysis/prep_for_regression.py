@@ -5,6 +5,13 @@ import os
 from tqdm import tqdm
 import glob
 
+count_cols = ['sac_count', 'sac_dir_N', 'sac_dir_NE', 'sac_dir_E', 'sac_dir_SE', 
+                    'sac_dir_S', 'sac_dir_SW', 'sac_dir_W', 'sac_dir_NW', 'blink_count', 
+                    'fixation_count']
+
+segment_to_divisor = {'negative': 180, 'learning': 10, 'recognition_familar': 12, 
+                      'recognition_new': 12, 'recall': 18} 
+
 def calc_blinks(df):
     df['is_blink'] = df['is_blink'] == 'y'
     blinks_start = df['is_blink'] & ~(df['is_blink'].shift(1).fillna(False))
@@ -92,6 +99,7 @@ def prep_pupil_files(files, segment, eye, subject_id):
                         merged_df[key] = [value]
     merged_df = pd.DataFrame(merged_df)
     merged = pd.merge(merged_df, saccade_info, on='filename')
+    merged[count_cols] = merged[count_cols]/segment_to_divisor[segment]
     return merged
 
 def emotibit_mean_var_col(df):
@@ -165,6 +173,7 @@ def merge_left_right(left, right, save_path):
     # merged.drop(columns=['label_y', 'index'], inplace=True)
     # merged.rename(columns={'label_x': 'label'}, inplace=True)
     os.makedirs(save_path, exist_ok=True)
+    merged.rename(columns={col: col + '_rate' for col in count_cols}, inplace=True)
     merged.to_csv(os.path.join(save_path, 'prepared.csv'))
     
 
