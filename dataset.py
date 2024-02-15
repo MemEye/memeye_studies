@@ -6,6 +6,7 @@ import glob
 class Dataset(torch.utils.data.Dataset):
     def __init__(self,start,end):
         self.data=[]
+        dict={}
         for x in ['emotibit_segmented_new/*']:
             for file in glob.glob(x):
                 if int(file[-3:])>=start and int(file[-3:])<=end:
@@ -15,61 +16,66 @@ class Dataset(torch.utils.data.Dataset):
                             for csvs in glob.glob(f+'/*.csv'):
                                 label=l
                                 df = pd.read_csv(csvs)
-                                # x=df['remembered'].value_counts()
-                                # if label=='recall':
-                                #     if 'Yes' in x:
-                                #         if 'No' in x:
-                                #             if x['Yes']<x['No']:
-                                #                 label='recall_fail'
-                                #             else:
-                                #                 label='recall_correct'
-                                #         else:
-                                #             label='recall_correct'
-                                #     else:
-                                #         label='recall_fail'
-                                # elif label=='recognition_familar':
-                                #     if 'Yes' in x:
-                                #         if 'No' in x:
-                                #             if x['Yes']<x['No']:
-                                #                 label='recognition_fail'
-                                #             else:
-                                #                 label='recognition_correct'
-                                #         else:
-                                #             label='recognition_correct'
-                                #     else:
-                                #         label='recognition_fail'
-                                # elif label=='recognition_new':
-                                #     if 'No' in x:
-                                #         if 'Yes' in x:
-                                #             if x['No']>x['Yes']:
-                                #                 label='recognition_fail'
-                                #             else:
-                                #                 continue
-                                #         else:
-                                #             continue
+                                x=df['remembered'].value_counts()
+                                if label=='recall':
+                                    if 'Yes' in x:
+                                        if 'No' in x:
+                                            if x['Yes']<x['No']:
+                                                label='recall_fail'
+                                            else:
+                                                label='recall_correct'
+                                        else:
+                                            label='recall_correct'
+                                    else:
+                                        label='recall_fail'
+                                elif label=='recognition_familar':
+                                    if 'Yes' in x:
+                                        if 'No' in x:
+                                            if x['Yes']<x['No']:
+                                                label='recognition_fail'
+                                            else:
+                                                label='recognition_correct'
+                                        else:
+                                            label='recognition_correct'
+                                    else:
+                                        label='recognition_fail'
+                                elif label=='recognition_new':
+                                    if 'No' in x:
+                                        if 'Yes' in x:
+                                            if x['No']>x['Yes']:
+                                                label='recognition_fail'
+                                            else:
+                                                continue
+                                        else:
+                                            continue
+                                columns=df[['T1','TH','EA','EL','PI','PR','PG','SF','SR','SA','HR']]
+                                for col in columns:
+                                    df[col]=(df[col]-df[col].mean())/df[col].std()
                                 if df['is_question'].isna().all() and df['is_verbal'].isna().all():
                                     pass
                                 else:
                                     for index,row in df.iterrows():
                                         if not pd.isna(row['is_question']) or not pd.isna(row['is_verbal']):
                                             break
-                                    df=df[:index]
-                                df=df[['T1','TH','EA','EL','PI','PR','PG','SF','SR','SA']]
-                                for col in df.columns:
-                                    df[col]=(df[col]-df[col].mean())/df[col].std()
+                                    df=df.iloc[:index]
                                 df=df.fillna(0)
+                                df=df[['T1','TH','EA','EL','PI','PR','PG','SF','SR','SA','HR']]
                                 df=df.values
                                 df=torch.tensor(df,dtype=torch.float32)
                                 #Create one hot encoding for labels
 
                                 if label=='negative':
-                                    label=torch.tensor([1,0,0,0],dtype=torch.float32)
+                                    label=torch.tensor([1,0,0,0,0,0],dtype=torch.float32)
                                 elif label=='learning':
-                                    label=torch.tensor([0,1,0,0],dtype=torch.float32)
-                                elif label=='recall':
-                                    label=torch.tensor([0,0,1,0],dtype=torch.float32)
-                                elif label=='recognition_familar':
-                                    label=torch.tensor([0,0,0,1],dtype=torch.float32)
+                                    label=torch.tensor([0,1,0,0,0,0],dtype=torch.float32)
+                                elif label=='recall_correct':
+                                    label=torch.tensor([0,0,1,0,0,0],dtype=torch.float32)
+                                elif label=='recall_fail':
+                                    label=torch.tensor([0,0,0,1,0,0],dtype=torch.float32)
+                                elif label=='recognition_correct':
+                                    label=torch.tensor([0,0,0,0,1,0],dtype=torch.float32)
+                                elif label=='recognition_fail':
+                                    label=torch.tensor([0,0,0,0,0,1],dtype=torch.float32)
                                 else:
                                     continue
                                 self.data.append([df,label])
